@@ -15,7 +15,7 @@ const renderer = new UnlitRenderer(canvas);
 await renderer.initialize();
 
 const gltfLoader = new GLTFLoader();
-await gltfLoader.load(new URL('./models/monkey/monkey.gltf', import.meta.url));
+await gltfLoader.load(new URL('./models/world/plane.gltf', import.meta.url));
 
 const scene = gltfLoader.loadScene(gltfLoader.defaultScene);
 const camera = scene.find(node => node.getComponentOfType(Camera));
@@ -24,19 +24,20 @@ camera.addComponent(new FirstPersonController(camera, canvas));
 const light = new Node();
 scene.addChild(light);
 light.addComponent(new Transform({
-    rotate: [0, 5, 5],
+    translate: [5, 5, 5],
 }));
 light.addComponent(new Light({
-    color: [1, 0, 0],
+    //color: [1, 0, 0],
 }));
 light.addComponent({
     update(t, dt){
-        const lightComponent = light.getComponentOfType(Light);
-        //lightComponent.color = [Math.sin(t) ** 2, 0, 0];
+        //const lightComponent = light.getComponentOfType(Light);
         const lightTransform = light.getComponentOfType(Transform);
-        lightTransform.translation = [Math.sin(t * 5) * 5, 5, 5];
+        //lightComponent.color = [Math.sin(t) ** 2, 0, 0];
+        lightTransform.translation = [5, 5, 5];
     }
 })
+
 
 function update(t, dt) {
     scene.traverse(node => {
