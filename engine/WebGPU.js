@@ -29,7 +29,7 @@ export function createTextureFromSource(device, {
             GPUTextureUsage.TEXTURE_BINDING |
             GPUTextureUsage.COPY_DST |
             GPUTextureUsage.RENDER_ATTACHMENT,
-        mipLevelCount: mipLevelCount(size),
+        mipLevelCount: 1,
     });
     device.queue.copyExternalImageToTexture(
         { source, flipY },

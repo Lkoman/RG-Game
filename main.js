@@ -26,13 +26,13 @@ scene.addChild(light);
 light.addComponent(new Transform({
     translate: [5, 5, 5],
 }));
+const lightTransform = light.getComponentOfType(Transform);
 light.addComponent(new Light({
     //color: [1, 0, 0],
 }));
 light.addComponent({
     update(t, dt){
         //const lightComponent = light.getComponentOfType(Light);
-        const lightTransform = light.getComponentOfType(Transform);
         //lightComponent.color = [Math.sin(t) ** 2, 0, 0];
         lightTransform.translation = [5, 5, 5];
     }

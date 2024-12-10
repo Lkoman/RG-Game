@@ -9,7 +9,7 @@ export class FirstPersonController {
         yaw = 0,
         velocity = [0, 0, 0],
         acceleration = 50,
-        maxSpeed = 5,
+        maxSpeed = 10,
         decay = 0.99999,
         pointerSensitivity = 0.002,
     } = {}) {
@@ -57,6 +57,13 @@ export class FirstPersonController {
         const sin = Math.sin(this.yaw);
         const forward = [-sin, 0, -cos];
         const right = [cos, 0, -sin];
+
+        // If shift is pressed, max speed is doubled.
+        if (this.keys['ShiftLeft']) {
+            this.maxSpeed = 20;
+        } else {
+            this.maxSpeed = 10;
+        }
 
         // Map user input to the acceleration vector.
         const acc = vec3.create();
