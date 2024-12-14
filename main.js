@@ -49,6 +49,7 @@ function update(t, dt) {
 
 function render() {
     renderer.render(scene, camera);
+    //renderer.render(scene, skyboxCamera);
 }
 
 function resize({ displaySize: { width, height }}) {

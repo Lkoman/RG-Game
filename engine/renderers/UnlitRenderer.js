@@ -58,10 +58,26 @@ export class UnlitRenderer extends BaseRenderer {
             },
             fragment: {
                 module,
-                targets: [{ format: this.format }],
+                targets: [{
+                    format: this.format, // Ensure the format supports alpha, e.g., 'bgra8unorm'
+                    // for transparent objects
+                    blend: {
+                        color: {
+                            srcFactor: 'src-alpha',
+                            dstFactor: 'one-minus-src-alpha',
+                            operation: 'add',
+                        },
+                        alpha: {
+                            srcFactor: 'one',
+                            dstFactor: 'one-minus-src-alpha',
+                            operation: 'add',
+                        },
+                    },
+                }],
             },
             depthStencil: {
                 format: 'depth24plus',
+                // turn this off for transparent objects
                 depthWriteEnabled: true,
                 depthCompare: 'less',
             },
@@ -197,6 +213,19 @@ export class UnlitRenderer extends BaseRenderer {
                     clearValue: [1, 1, 1, 1],
                     loadOp: 'clear',
                     storeOp: 'store',
+                    // for transparent objects
+                    blend: {
+                        color: {
+                            srcFactor: 'src-alpha',
+                            dstFactor: 'one-minus-src-alpha',
+                            operation: 'add',
+                        },
+                        alpha: {
+                            srcFactor: 'one',
+                            dstFactor: 'one-minus-src-alpha',
+                            operation: 'add',
+                        },
+                    },
                 },
             ],
             depthStencilAttachment: {
@@ -230,7 +259,7 @@ export class UnlitRenderer extends BaseRenderer {
 
         this.renderPass.end();
         this.device.queue.submit([encoder.finish()]);
-    }
+    }    
 
     renderNode(node, modelMatrix = mat4.create()) {
         const localMatrix = getLocalModelMatrix(node);
