@@ -123,7 +123,7 @@ export class UnlitRenderer extends BaseRenderer {
         }
 
         const cameraUniformBuffer = this.device.createBuffer({
-            size: 128,
+            size: 176, // 64 bytes (viewMatrix) + 64 bytes (projectionMatrix) + 16 bytes (fogColor) + 4 bytes (fogNear) + 4 bytes (fogFar) + 8 bytes padding + 12 bytes cameraPosition
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
         });
 
@@ -205,12 +205,17 @@ export class UnlitRenderer extends BaseRenderer {
             this.recreateDepthTexture();
         }
 
+        // FOG PARAMETERS
+        const fogColor = new Float32Array([0.5, 0.5, 0.5, 1.0]); // Example fog color
+        const fogNear = 25.0; // Start of fog
+        const fogFar = 100.0;  // End of fog
+
         const encoder = this.device.createCommandEncoder();
         this.renderPass = encoder.beginRenderPass({
             colorAttachments: [
                 {
                     view: this.context.getCurrentTexture().createView(),
-                    clearValue: [1, 1, 1, 1],
+                    clearValue: fogColor,
                     loadOp: 'clear',
                     storeOp: 'store',
                     // for transparent objects
@@ -240,9 +245,18 @@ export class UnlitRenderer extends BaseRenderer {
         const cameraComponent = camera.getComponentOfType(Camera);
         const viewMatrix = getGlobalViewMatrix(camera);
         const projectionMatrix = getProjectionMatrix(camera);
+
+        // CAMERA AND FOG
+        var cameraPosition = mat4.getTranslation(vec3.create(), getGlobalModelMatrix(camera));
+
         const { cameraUniformBuffer, cameraBindGroup } = this.prepareCamera(cameraComponent);
+
         this.device.queue.writeBuffer(cameraUniformBuffer, 0, viewMatrix);
         this.device.queue.writeBuffer(cameraUniformBuffer, 64, projectionMatrix);
+        this.device.queue.writeBuffer(cameraUniformBuffer, 128, fogColor);
+        this.device.queue.writeBuffer(cameraUniformBuffer, 144, new Float32Array([fogNear, fogFar]));
+        this.device.queue.writeBuffer(cameraUniformBuffer, 160, new Float32Array(cameraPosition));
+
         this.renderPass.setBindGroup(0, cameraBindGroup);
 
         const light = scene.find(node => node.getComponentOfType(Light));

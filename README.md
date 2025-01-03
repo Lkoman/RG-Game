@@ -1,10 +1,11 @@
 # TO-DO
 
 ## Models
-- [ ] world model (trees, fences, itd.)
-- [ ] robot model
+- [ ] world model (trees, fences, itd.) več različnih
+- [ ] robot model več maybe premika
 - [ ] playing board model for tic-tac-toe (predstavlam si en big kvadrat k ma 3*3 polja not)
 - [ ] skybox
+- [ ] megla maybe kokr skybox da se premika s tabo
 
 ### Models upgrades maybe
 - [ ] maybe kasnej večji world model with multiples fences and gates

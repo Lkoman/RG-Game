@@ -24,6 +24,11 @@ struct FragmentOutput {
 struct CameraUniforms {
     viewMatrix: mat4x4f,
     projectionMatrix: mat4x4f,
+    fogColor: vec4f,   // Add fog color
+    fogNear: f32,      // Add fog near
+    fogFar: f32,       // Add fog far
+    padding: vec2f,    // Alignment padding
+    cameraPosition: vec3f,
 }
 
 struct ModelUniforms {
@@ -68,11 +73,26 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
 
     let N = normalize(input.normal);
     let L = normalize(light.position - input.position);
-    let lambert = max (dot(N, L), 0);
+    let lambert = max(dot(N, L), 0);
     let ambientLight = vec3f(0.3, 0.3, 0.3);
 
     let materialColor = textureSample(baseTexture, baseSampler, input.texcoords) * material.baseFactor;
-    output.color = materialColor * vec4f(light.color * lambert + ambientLight, 1);
+    var color = materialColor * vec4f(light.color * lambert + ambientLight, 1);
+
+    // Calculate the distance in the XY plane (movement-based)
+    let distanceXY = length(vec2(input.position.x, input.position.y) - vec2(camera.cameraPosition.x, camera.cameraPosition.y));
+
+    // Create a dome constraint for Z (fixed reference point for the dome)
+    let domeZ = abs(input.position.z - camera.cameraPosition.z); // Absolute vertical distance
+
+    // Combine XY movement with Z dome effect
+    let combinedDistance = length(vec2(distanceXY, domeZ)); // Treat XY and Z as orthogonal components
+
+    // Compute fog factor
+    let fogFactor = clamp((combinedDistance - camera.fogNear) / (camera.fogFar - camera.fogNear), 0.0, 1.0);
+
+    // Blend fog with the fragment color
+    output.color = mix(color, camera.fogColor, fogFactor);
 
     return output;
 }
