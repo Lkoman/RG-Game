@@ -59,25 +59,15 @@ export class UnlitRenderer extends BaseRenderer {
             fragment: {
                 module,
                 targets: [{
-                    format: this.format, // Ensure the format supports alpha, e.g., 'bgra8unorm'
-                    // for transparent objects
+                    format: this.format,
                     blend: {
-                        color: {
-                            srcFactor: 'src-alpha',
-                            dstFactor: 'one-minus-src-alpha',
-                            operation: 'add',
-                        },
-                        alpha: {
-                            srcFactor: 'one',
-                            dstFactor: 'one-minus-src-alpha',
-                            operation: 'add',
-                        },
+                        color: { srcFactor: 'src-alpha', dstFactor: 'one-minus-src-alpha', operation: 'add' },
+                        alpha: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha', operation: 'add' },
                     },
                 }],
             },
             depthStencil: {
                 format: 'depth24plus',
-                // turn this off for transparent objects
                 depthWriteEnabled: true,
                 depthCompare: 'less',
             },
@@ -206,7 +196,7 @@ export class UnlitRenderer extends BaseRenderer {
         }
 
         // FOG PARAMETERS
-        const fogColor = new Float32Array([0.5, 0.5, 0.5, 1.0]); // Example fog color
+        const fogColor = new Float32Array([0.5, 0.5, 0.5, 1.0]); // gray
         const fogNear = 25.0; // Start of fog
         const fogFar = 100.0;  // End of fog
 
@@ -218,7 +208,7 @@ export class UnlitRenderer extends BaseRenderer {
                     clearValue: fogColor,
                     loadOp: 'clear',
                     storeOp: 'store',
-                    // for transparent objects
+                    // for transparent objects, does not work
                     blend: {
                         color: {
                             srcFactor: 'src-alpha',
@@ -253,6 +243,7 @@ export class UnlitRenderer extends BaseRenderer {
 
         this.device.queue.writeBuffer(cameraUniformBuffer, 0, viewMatrix);
         this.device.queue.writeBuffer(cameraUniformBuffer, 64, projectionMatrix);
+        // send fog parameters to camera uniform in the shader
         this.device.queue.writeBuffer(cameraUniformBuffer, 128, fogColor);
         this.device.queue.writeBuffer(cameraUniformBuffer, 144, new Float32Array([fogNear, fogFar]));
         this.device.queue.writeBuffer(cameraUniformBuffer, 160, new Float32Array(cameraPosition));

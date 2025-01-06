@@ -2,30 +2,41 @@ import { quat, vec3, mat4 } from 'glm';
 
 import { Transform } from '../core/Transform.js';
 
+import { camRigidBody, AmmoLibExport as AmmoLib } from './CollisionDetection.js';
+
+export let maxSpeed = 5;
+
 export class FirstPersonController {
 
     constructor(node, domElement, {
+        mass = 1,
         pitch = 0,
         yaw = 0,
         velocity = [0, 0, 0],
-        acceleration = 50,
-        maxSpeed = 10,
+        acceleration = 5,
+        maxSpeed = 4,
         decay = 0.99999,
         pointerSensitivity = 0.002,
+        cameraRigidBody = null,
     } = {}) {
         this.node = node;
         this.domElement = domElement;
+
+        this.cameraRigidBody = cameraRigidBody;
 
         this.keys = {};
 
         this.pitch = pitch;
         this.yaw = yaw;
+        this.mass = mass;
 
         this.velocity = velocity;
         this.acceleration = acceleration;
         this.maxSpeed = maxSpeed;
         this.decay = decay;
         this.pointerSensitivity = pointerSensitivity;
+
+        this.spacePressed = false;
 
         this.initHandlers();
     }
@@ -57,12 +68,15 @@ export class FirstPersonController {
         const sin = Math.sin(this.yaw);
         const forward = [-sin, 0, -cos];
         const right = [cos, 0, -sin];
+        const up = [0, 1, 0];
 
         // If shift is pressed, max speed is doubled.
         if (this.keys['ShiftLeft']) {
-            this.maxSpeed = 20;
+            this.maxSpeed = 8;
+            maxSpeed = 8;
         } else {
-            this.maxSpeed = 10;
+            this.maxSpeed = 4;
+            maxSpeed = 4;
         }
 
         // Map user input to the acceleration vector.
@@ -79,33 +93,53 @@ export class FirstPersonController {
         if (this.keys['KeyA']) {
             vec3.sub(acc, acc, right);
         }
+        // Jump
+        if (this.keys['Space'] && !this.spacePressed) {
+            vec3.add(acc, acc, up);
 
-        // Update velocity based on acceleration.
-        vec3.scaleAndAdd(this.velocity, this.velocity, acc, dt * this.acceleration);
-
-        // If there is no user input, apply decay.
-        if (!this.keys['KeyW'] &&
-            !this.keys['KeyS'] &&
-            !this.keys['KeyD'] &&
-            !this.keys['KeyA'])
-        {
-            const decay = Math.exp(dt * Math.log(1 - this.decay));
-            vec3.scale(this.velocity, this.velocity, decay);
+            this.spacePressed = true;
         }
 
-        // Limit speed to prevent accelerating to infinity and beyond.
-        const speed = vec3.length(this.velocity);
-        if (speed > this.maxSpeed) {
-            vec3.scale(this.velocity, this.velocity, this.maxSpeed / speed);
+
+
+        // Normalize direction, then multiply by maxSpeed
+        const len = vec3.length(acc);
+        if (len > 0) {
+            vec3.scale(acc, acc, this.maxSpeed / len);
         }
 
+        // Set the velocity on the cameraRigidBody
+        if (camRigidBody) {
+            // read curren velocity of the camera rigid body
+            const currentVel = camRigidBody.getLinearVelocity();
+
+            const currentVec = [currentVel.x(), currentVel.y(), currentVel.z()]; // convert to vec3
+            AmmoLib.destroy(currentVel);
+
+            if (acc[1] === 0) {
+                acc[1] = currentVec[1];
+            }
+            const desiredVec = [acc[0], acc[1], acc[2]]; // only move in x and z, keep y/height
+
+            // Now compute how different it is from the current velocity
+            const diffX = desiredVec[0] - currentVec[0];
+            const diffY = desiredVec[1] - currentVec[1];
+            const diffZ = desiredVec[2] - currentVec[2];
+
+            const impulse = new AmmoLib.btVector3(diffX * this.mass, diffY * this.mass, diffZ * this.mass);
+            
+            // Apply that impulse so Bullet adjusts the velocity
+            camRigidBody.applyCentralImpulse(impulse);
+            AmmoLib.destroy(impulse);
+
+        } else {
+            console.log("No camRigidBody found");
+        }
+
+        // handle camera orientation by directly setting node’s rotation
         const transform = this.node.getComponentOfType(Transform);
         if (transform) {
-            // Update translation based on velocity.
-            vec3.scaleAndAdd(transform.translation,
-                transform.translation, this.velocity, dt);
-
-            // Update rotation based on the Euler angles.
+            // We'll let Bullet handle position, but we'll do rotation ourselves
             const rotation = quat.create();
             quat.rotateY(rotation, rotation, this.yaw);
             quat.rotateX(rotation, rotation, this.pitch);
@@ -133,6 +167,10 @@ export class FirstPersonController {
 
     keyupHandler(e) {
         this.keys[e.code] = false;
+
+        if (e.code === 'Space') {
+            this.spacePressed = false;
+        }
     }
 
 }

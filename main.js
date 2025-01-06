@@ -1,4 +1,4 @@
-import { quat } from 'glm';
+import { quat, mat4 } from 'glm';
 
 import { Camera, Node, Light, Transform } from 'engine/core.js';
 
@@ -9,37 +9,78 @@ import { UpdateSystem } from 'engine/systems/UpdateSystem.js';
 
 import { UnlitRenderer } from 'engine/renderers/UnlitRenderer.js';
 import { FirstPersonController } from './engine/controllers/FirstPersonController.js';
+import { CollisionDetection } from './engine/controllers/CollisionDetection.js';
+
+////////////////
+// VARIABLES //
+///////////////
+
+const timeStep = 1 / 60; // 60 FPS
+const maxSubSteps = 10; // če zalagga
+
+/////////////////
+// SCENE SETUP //
+/////////////////
 
 const canvas = document.querySelector('canvas');
 const renderer = new UnlitRenderer(canvas);
 await renderer.initialize();
 
-const gltfLoader = new GLTFLoader();
-await gltfLoader.load(new URL('./models/world/plane.gltf', import.meta.url));
+// Load the world model
+const worldLoader = new GLTFLoader();
+await worldLoader.load(new URL('./models/world-new/plane.gltf', import.meta.url));
+const scene = worldLoader.loadScene(worldLoader.defaultScene); // Add the model to the scene
 
-const scene = gltfLoader.loadScene(gltfLoader.defaultScene);
+// Set up collision detection
+const collisionDetection = new CollisionDetection(scene);
+scene.addComponent(collisionDetection);
+
+// Set up the camera
 const camera = scene.find(node => node.getComponentOfType(Camera));
+camera.getComponentOfType(Transform).rotation = quat.fromEuler(quat.create(), 0, 70, 0);
 camera.addComponent(new FirstPersonController(camera, canvas));
 
+// Add a light
 const light = new Node();
 scene.addChild(light);
 light.addComponent(new Transform({
-    translate: [5, 5, 5],
+    translate: [0, 1000, 0],
 }));
 const lightTransform = light.getComponentOfType(Transform);
 light.addComponent(new Light({
-    //color: [1, 0, 0],
+    type: 'directional', // Sunlight type
+    color: [1, 1, 1],
+    intensity: 100.0,
+    castShadows: true, // Enable shadow casting
 }));
-light.addComponent({
-    update(t, dt){
-        //const lightComponent = light.getComponentOfType(Light);
-        //lightComponent.color = [Math.sin(t) ** 2, 0, 0];
-        lightTransform.translation = [5, 5, 5];
-    }
-})
 
+light.addComponent({
+    update(t, dt) {
+        const radius = 100; // Distance from the origin
+        const speed = 0.05;   // Adjust speed for day-night cycle (radians per second)
+
+        // Calculate new position using circular motion
+        const x = radius * Math.sin(speed * t);
+        const y = radius * Math.cos(speed * t); // Moves along a vertical circle
+        const z = 0; // Keep z constant for a 2D rotation
+
+        // Update light position
+        lightTransform.translation = [x, y, z];
+    }
+});
+
+
+////////////////////////
+// UPDATE AND RENDER //
+///////////////////////
 
 function update(t, dt) {
+    // Update physics
+    if (collisionDetection.updatePhysics) {
+        collisionDetection.updatePhysics(timeStep, maxSubSteps);
+    }
+
+    // Update all components
     scene.traverse(node => {
         for (const component of node.components) {
             component.update?.(t, dt);
@@ -48,8 +89,8 @@ function update(t, dt) {
 }
 
 function render() {
+    // Render the scene
     renderer.render(scene, camera);
-    //renderer.render(scene, skyboxCamera);
 }
 
 function resize({ displaySize: { width, height }}) {

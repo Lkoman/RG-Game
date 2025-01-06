@@ -4,8 +4,6 @@
 - [ ] world model (trees, fences, itd.) več različnih
 - [ ] robot model več maybe premika
 - [ ] playing board model for tic-tac-toe (predstavlam si en big kvadrat k ma 3*3 polja not)
-- [ ] skybox
-- [ ] megla maybe kokr skybox da se premika s tabo
 
 ### Models upgrades maybe
 - [ ] maybe kasnej večji world model with multiples fences and gates
@@ -20,7 +18,8 @@
 ## Gameplay
 - [x] moving around
     -   FirstPersonController dodan v main.js
-- [ ] collision detection
+- [x] collision detection
+- [x] jumping
 
 ### Tic-tac-toe gameplay
 - [ ] changing scenes ko greš v "play mode" pri tic-tac-toe (sprememba view-ja ob kliku na en key, se ti spremeni perspektiva, rata fixed namesto da se lahko okol premikaš)
@@ -29,3 +28,6 @@
 
 ### Gameplay upgrades maybe
 - [ ] picking up objects
+
+## Other
+- [x] fog
