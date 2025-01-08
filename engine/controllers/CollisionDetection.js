@@ -4,6 +4,8 @@ import { Camera, Transform } from '../core.js';
 
 import { maxSpeed } from './FirstPersonController.js';
 
+import { getGlobalModelMatrix } from '../core/SceneUtils.js';
+
 export let camRigidBody;
 export let AmmoLibExport;
 
@@ -16,6 +18,7 @@ export class CollisionDetection {
         this.camera = scene.find(node => node.getComponentOfType(Camera));
         this.rigidBodyMap = new Map(); // btRigidBody -> { name, or some info }
         this.cameraRigidBody = null;
+        this.regex = /\.\d{3}/; // za testiranje če je model an instance
 
         this.handleInit();
     }
@@ -27,44 +30,128 @@ export class CollisionDetection {
         //////////////////
 
         var tmpData = [];
+        let instances = [];
 
         // Dodamo vse nodes v sceni v tmpData, da jih potem razdelimo v modelsData in staticModelsData
         this.scene.traverse(node => {
             console.log(node);
-            
-            // Pogledamo če ima model komponento Mesh, če je nima, pomeni da je Camera ali Light in jih ne rabimo
-            const meshPrimitives = node.components?.[1]?.primitives;
-            meshPrimitives?.forEach(primitive => {
-                if (primitive) {
-                    // Pogledamo če model že obstaja v tmpData
-                    const zeObstaja = tmpData.find(model => model.name === node.name);
-                    if (zeObstaja) {
-                        // Združimo indices and vertices
-                        zeObstaja.vertices.push(...primitive.mesh.vertices);
-                        const indexOffset = zeObstaja.vertices.length / 3; // Adjust indices for offset
-                        const skupneIndices = primitive.mesh.indices.map(index => index + indexOffset);
-                        zeObstaja.indices.push(...skupneIndices);
-                    } else {
-                        // Če še ne obstajamo, dodamo nov zapis v tmpData
-                        tmpData.push({
-                            name: node.name,
-                            vertices: [...primitive.mesh.vertices],
-                            indices: [...primitive.mesh.indices],
-                            position: [...node.components[0].translation],
-                            rotation: [...node.components[0].rotation],
-                            scale: [...node.components[0].scale],
-                            aabb: null,
+            if (node.name && !node.name.startsWith("nc_")) { // nc pomeni no collision
+                if (this.regex.test(node.name)) { // ČE JE INSTANCE
+                    let imeOriginala = node.name;
+                    imeOriginala = imeOriginala.replace(this.regex, ""); // naredimo ime originala
+
+                    instances.push({
+                        name: node.name,
+                        original: imeOriginala,
+                        position: [...this.clampToDecimals(node.components[0].translation, 5)],
+                        rotation: [...this.clampToDecimals(node.components[0].rotation, 5)],
+                        scale: [...this.clampToDecimals(node.components[0].scale, 5)]
+                    });
+                }
+
+                // Pogledamo če ima model komponento Mesh, če je nima, pomeni da je Camera ali Light in jih ne rabimo
+                const meshPrimitives = node.components?.[1]?.primitives;
+                meshPrimitives?.forEach(primitive => {
+                    if (primitive) {
+                        // Pogledamo če model že obstaja v tmpData
+                        let obstojeciModel;
+                        let zeObstaja = false;
+                        tmpData.forEach(model => {
+                            if (model.name === node.name) {
+                                obstojeciModel = tmpData.find(tmpData => tmpData.name === node.name);
+                                zeObstaja = true;
+                            }
                         });
+                        if (zeObstaja) {
+                            // Združimo indices and vertices
+                            obstojeciModel.vertices.push(...primitive.mesh.vertices);
+                            const indexOffset = obstojeciModel.vertices.length / 3; // Adjust indices for offset
+                            const skupneIndices = primitive.mesh.indices.map(index => index + indexOffset);
+                            obstojeciModel.indices.push(...skupneIndices);
+                        } else {
+                            // Če še ne obstajamo, dodamo nov zapis v tmpData
+                            tmpData.push({
+                                name: node.name,
+                                vertices: [...primitive.mesh.vertices],
+                                indices: [...primitive.mesh.indices],
+                                position: [...this.clampToDecimals(node.components[0].translation, 5)],
+                                rotation: [...this.clampToDecimals(node.components[0].rotation, 5)],
+                                scale: [...this.clampToDecimals(node.components[0].scale, 5)],
+                            });
+                        }
                     }
+                });
+            }
+            //console.log(node);
+        });
+
+        console.log("instances: ", instances);
+
+        tmpData.forEach(parentModel => {
+            instances.forEach(instance => {
+                if (parentModel.name === instance.original) {
+                    
+                    // Fucked, nevem zakaj??
+                    /*console.log(instance.name);
+
+                    // Parent TRS matrices
+                    let parentTranslationM = this.createTranslationMatrix(parentModel.position);
+                    let parentRotationM = this.clampMatrix(this.quaternionToMatrix(parentModel.rotation), 0);
+                    let parentScaleM = this.createScaleMatrix(parentModel.scale);
+
+                    let localRotationM = this.clampMatrix(this.quaternionToMatrix(instance.rotation), 0);
+                    let localScaleM = this.createScaleMatrix(instance.scale);
+                    console.log("localRotationM: ", localRotationM);
+                    console.log("localScaleM: ", localScaleM);
+
+                    let localTranslationM = this.createTranslationMatrix(instance.position);
+                    console.log("localTranslationM: ", localTranslationM);
+
+                    // vrstni red S * R * T obrnjen
+                    let localTRS = this.multiplyMatrices(localTranslationM, this.multiplyMatrices(localRotationM, localScaleM));
+                    console.log("localTRS: ", localTRS);
+
+                    // vrstni red S * R * T obrnjen
+                    let parentTRS = this.multiplyMatrices(parentTranslationM, this.multiplyMatrices(parentRotationM, parentScaleM));
+                    console.log("parentTRS: ", parentTRS);
+
+                    // MULTIPLY PARENT TRS * CHILD TRS to get child world coords
+                    let worldMatrix = this.multiplyMatrices(parentTRS, localTRS);
+                    console.log("worldMatrix: ", worldMatrix);
+
+                    // DECOMPOSE WORLD MATRIX
+                    let worldTrans = [worldMatrix[0][3], worldMatrix[1][3], worldMatrix[2][3]];
+                    console.log("worldTrans: ", worldTrans);
+                    let worldScale = [
+                        Math.sqrt(worldMatrix[0][0] ** 2 + worldMatrix[0][1] ** 2 + worldMatrix[0][2] ** 2),
+                        Math.sqrt(worldMatrix[1][0] ** 2 + worldMatrix[1][1] ** 2 + worldMatrix[1][2] ** 2),
+                        Math.sqrt(worldMatrix[2][0] ** 2 + worldMatrix[2][1] ** 2 + worldMatrix[2][2] ** 2)
+                    ];                    
+                    console.log("worldScale: ", worldScale);
+                    let worldRotation;
+                    let normalizedMatrix = this.normalizeMatrix(worldScale[0], worldScale[1], worldScale[2], worldMatrix);
+                    worldRotation = this.matrixToQuaternion(normalizedMatrix);
+                    console.log("worldRotation: ", worldRotation);*/
+
+
+                    // 5) Add the “instance” as a new model, but reusing the parent's geometry
+                    tmpData.push({
+                    name: instance.name,
+                    vertices: [...parentModel.vertices],
+                    indices: [...parentModel.indices],
+                    position: instance.position,       // final world coords
+                    rotation: instance.rotation,       // final world rotation (quaternion)
+                    scale:    instance.scale      // final world scale
+                    });
                 }
             });
         });
-    
-        //console.log("tmpData: ", tmpData);
 
+        console.log("tmpData: ", tmpData);
+    
         tmpData.forEach(model => {
             // Shranimo podatke za moving modele v modelsData
-            if (model.name === "Stone dude") {
+            if (model.name.startsWith("dy_")) { // dy pomeni dynamic
                 this.modelsData.push(model);
             } 
             // Shranimo podatke za static modele v staticModelsData
@@ -75,6 +162,7 @@ export class CollisionDetection {
 
         console.log("modelsData: ", this.modelsData);
         console.log("staticModelsData: ", this.staticModelsData);
+
 
         /////////////////
         // IMPORT AMMO //
@@ -95,6 +183,7 @@ export class CollisionDetection {
             this.addAllObjects(physicsWorld, AmmoLib, this.staticModelsData, 1, 0); // flag = 1, mass = 0 for static
 
             this.cameraRigidBody = this.addPlayerCamera(physicsWorld, AmmoLib);
+
             if (!this.cameraRigidBody) {
                 console.error("Failed to add camera rigid body.");
             } else {
@@ -105,9 +194,124 @@ export class CollisionDetection {
 
             // Step 3: Run collision checks in your game loop
             this.setupGameLoop(physicsWorld, AmmoLib);
+
         }).catch((error) => {
             console.error('Failed to initialize Ammo.js:', error);
         });
+    }
+
+    clampMatrix(matrix, decimal) {
+        for (let i = 0; i < matrix.length; i++) {
+            matrix[i] = this.clampToDecimals(matrix[i], decimal);
+        }
+        return matrix;
+    }
+
+    clampToDecimals(vector, decimal) {
+        for (let i = 0; i < vector.length; i++) {
+            vector[i] = parseFloat(vector[i].toFixed(decimal));
+        }
+        return vector;
+    }
+
+    normalizeMatrix(scaleX, scaleY, scaleZ, matrix) {
+        return [
+            [matrix[0][0] / scaleX, matrix[0][1] / scaleX, matrix[0][2] / scaleX],
+            [matrix[1][0] / scaleY, matrix[1][1] / scaleY, matrix[1][2] / scaleY],
+            [matrix[2][0] / scaleZ, matrix[2][1] / scaleZ, matrix[2][2] / scaleZ],
+        ];
+    }
+
+    createTranslationMatrix(translation){
+        return [
+            [1, 0, 0, translation[0]],
+            [0, 1, 0, translation[1]],
+            [0, 0, 1, translation[2]],
+            [0, 0, 0, 1]
+        ];
+    }
+
+    createScaleMatrix(scale){
+        return [
+            [scale[0], 0, 0, 0],
+            [0, scale[1], 0, 0],
+            [0, 0, scale[2], 0],
+            [0, 0, 0, 1]
+        ];
+    }
+    
+    // Utility function for matrix multiplication
+    multiplyMatrices(a, b) {
+        const result = Array(4).fill(null).map(() => Array(4).fill(0));
+        for (let i = 0; i < 4; i++) {
+            for (let j = 0; j < 4; j++) {
+                for (let k = 0; k < 4; k++) {
+                    result[i][j] += a[i][k] * b[k][j];
+                }
+            }
+        }
+        return result;
+    }
+
+    quaternionToMatrix(q) {
+        const [qx, qy, qz, qw] = q;
+
+        console.log("q: ", q);
+    
+        const xx = qx * qx;
+        const yy = qy * qy;
+        const zz = qz * qz;
+        const xy = qx * qy;
+        const xz = qx * qz;
+        const yz = qy * qz;
+        const wx = qw * qx;
+        const wy = qw * qy;
+        const wz = qw * qz;
+    
+        return [
+            [1 - 2 * (yy + zz), 2 * (xy - wz), 2 * (xz + wy), 0],
+            [2 * (xy + wz), 1 - 2 * (xx + zz), 2 * (yz - wx), 0],
+            [2 * (xz - wy), 2 * (yz + wx), 1 - 2 * (xx + yy), 0],
+            [0, 0, 0, 1]
+        ];
+    }
+
+    matrixToQuaternion(mat) {
+        const m00 = mat[0][0], m01 = mat[0][1], m02 = mat[0][2];
+        const m10 = mat[1][0], m11 = mat[1][1], m12 = mat[1][2];
+        const m20 = mat[2][0], m21 = mat[2][1], m22 = mat[2][2];
+    
+        let w, x, y, z;
+    
+        const trace = m00 + m11 + m22;
+    
+        if (trace > 0) {
+            const s = 0.5 / Math.sqrt(trace + 1.0);
+            w = 0.25 / s;
+            x = (m21 - m12) * s;
+            y = (m02 - m20) * s;
+            z = (m10 - m01) * s;
+        } else if (m00 > m11 && m00 > m22) {
+            const s = 2.0 * Math.sqrt(1.0 + m00 - m11 - m22);
+            w = (m21 - m12) / s;
+            x = 0.25 * s;
+            y = (m01 + m10) / s;
+            z = (m02 + m20) / s;
+        } else if (m11 > m22) {
+            const s = 2.0 * Math.sqrt(1.0 + m11 - m00 - m22);
+            w = (m02 - m20) / s;
+            x = (m01 + m10) / s;
+            y = 0.25 * s;
+            z = (m12 + m21) / s;
+        } else {
+            const s = 2.0 * Math.sqrt(1.0 + m22 - m00 - m11);
+            w = (m10 - m01) / s;
+            x = (m02 + m20) / s;
+            y = (m12 + m21) / s;
+            z = 0.25 * s;
+        }
+    
+        return [x, y, z, w];
     }
 
     setupGameLoop(physicsWorld, AmmoLib) {
@@ -131,14 +335,17 @@ export class CollisionDetection {
     addAllObjects(physicsWorld, AmmoLib, modelType, flag, mass) {
         modelType.forEach(model => {
             const { vertices, indices, name, position, rotation, scale } = model;
-            console.log("--------------------------------");
-            console.log(name);
-            if (name == "Stone dude") {
+            let aabb = false;
+            if (name == "dy_stone dude") {
                 mass = 200;
-                //console.log("Initial position of stone dude: " , position);
             }
-
-            this.addObject(vertices, indices, AmmoLib, physicsWorld, flag, mass, position, rotation, scale)
+            if (name.startsWith("aabb_")) {
+                aabb = true;
+            }
+            if (name.startsWith("trigger_")) {
+                
+            }
+            this.addObject(vertices, indices, AmmoLib, physicsWorld, flag, mass, position, rotation, scale, aabb)
             .then(rigidBody => {
                 model.rigidBody = rigidBody;
                 this.rigidBodyMap.set(rigidBody, { name: name });
@@ -148,90 +355,32 @@ export class CollisionDetection {
                 if (modelType === this.modelsData) console.error("Failed to add DYNAMIC object", name , error);
                 else console.error("Failed to add STATIC object", name, error);
             });
+
+            this.delay(50);
         });
     }
 
-    addObject(vertices, indices, AmmoLib, physicsWorld, flag, mass, initialPosition, initialRotation, initialScale) {
+    addObject(vertices, indices, AmmoLib, physicsWorld, flag, mass, initialPosition, initialRotation, initialScale, aabb) {
         return new Promise((resolve, reject) => {
             try {
                 var shape;
 
-                // --- STATIC body (flag == 1) ---
-                /*if (flag == 1) {
-                    // #1 Create btTriangleMesh
-                    const triangleMesh = new AmmoLib.btTriangleMesh();
+                if (aabb) {
+                    shape = this.aabb(AmmoLib, vertices);
+                } else {
+                    // --- STATIC body (flag == 1) ---
+                    if (flag == 1) {
+                        shape = this.bvhStatic(AmmoLib, vertices, indices);
+                    } 
 
-                    // #2 Add the triangles to the triangle mesh
-                    for (let i = 0; i < indices.length; i += 3) {
-                        const index0 = indices[i] * 3;
-                        const index1 = indices[i + 1] * 3;
-                        const index2 = indices[i + 2] * 3;
-
-                        // Create Ammo vectors for each vertex
-                        const vertex0 = new AmmoLib.btVector3(vertices[index0], vertices[index0 + 1], vertices[index0 + 2]);
-                        const vertex1 = new AmmoLib.btVector3(vertices[index1], vertices[index1 + 1], vertices[index1 + 2]);
-                        const vertex2 = new AmmoLib.btVector3(vertices[index2], vertices[index2 + 1], vertices[index2 + 2]);
-
-                        // Add the triangles to the btTriangleMesh
-                        triangleMesh.addTriangle(vertex0, vertex1, vertex2);
-
-                        // Free the memory
-                        AmmoLib.destroy(vertex0);
-                        AmmoLib.destroy(vertex1);
-                        AmmoLib.destroy(vertex2);
+                    // --- DYNAMIC body (flag == 0) ---
+                    else if (flag == 0) {
+                        //shape = this.convexHull(AmmoLib, vertices);
+                        shape = this.aabb(AmmoLib, vertices);
                     }
+                }
 
-                    // #3 Create a collision shape (for static objects)
-                    shape = new AmmoLib.btBvhTriangleMeshShape(triangleMesh, true);
-                    
-                } 
-
-                // --- DYNAMIC body (flag == 0) ---
-                else if (flag == 0) {*/
-                    // For a dynamic mesh, we build a convex hull shape:
-                    //shape = new AmmoLib.btConvexHullShape();
-
-                    let min = [Infinity, Infinity, Infinity];
-                    let max = [-Infinity, -Infinity, -Infinity];
-
-                    for (let i = 0; i < vertices.length; i += 3) {
-                        var vertexPos = vertices[i].position;
-                        /*const vx = vertices[i];
-                        const vy = vertices[i + 1];
-                        const vz = vertices[i + 2];
-
-                        // Create a temporary Ammo vector
-                        const tempVec = new AmmoLib.btVector3(vx, vy, vz);
-
-                        // Add point to the hull
-                        shape.addPoint(tempVec, true);
-
-                        // Destroy the temporary Ammo vector
-                        AmmoLib.destroy(tempVec);*/
-
-                        // AABB
-                        min[0] = Math.min(min[0], vertexPos[0]);
-                        min[1] = Math.min(min[1], vertexPos[1]);
-                        min[2] = Math.min(min[2], vertexPos[2]);
-
-                        max[0] = Math.max(max[0], vertexPos[0]);
-                        max[1] = Math.max(max[1], vertexPos[1]);
-                        max[2] = Math.max(max[2], vertexPos[2]);
-                    }
-
-                    const halfExtents = [
-                        (max[0] - min[0]) / 2,
-                        (max[1] - min[1]) / 2,
-                        (max[2] - min[2]) / 2
-                    ]
-
-                    console.log(max[0] - min[0]);
-                    console.log(max[1] - min[1]);
-                    console.log(max[2] - min[2]);
-                    console.log("--------------------------------");
-
-                    shape = new AmmoLib.btBoxShape(new AmmoLib.btVector3(halfExtents[0], halfExtents[1], halfExtents[2]));
-                //}
+                shape.setMargin(0.05);
 
                 // #4 Define the initial position, rotation, and scale of the object
                 const transform = new AmmoLib.btTransform();
@@ -260,8 +409,6 @@ export class CollisionDetection {
 
                 rigidBody.setCollisionFlags(flag); // flag = 1 for static objects, 2 for kinematic objects, 0 for dynamic
 
-                console.log(rigidBody.getCenterOfMassTransform().getOrigin().x(), rigidBody.getCenterOfMassTransform().getOrigin().y(), rigidBody.getCenterOfMassTransform().getOrigin().z());
-
                 // #5 Add the rigid body to the physics world
                 physicsWorld.addRigidBody(rigidBody);
 
@@ -275,6 +422,82 @@ export class CollisionDetection {
         });
     }
 
+    aabb(AmmoLib, vertices) {
+        let min = [Infinity, Infinity, Infinity];
+        let max = [-Infinity, -Infinity, -Infinity];
+
+        for (let i = 0; i < vertices.length; i ++) {
+            var vertexPos = vertices[i].position;
+
+            min[0] = Math.min(min[0], vertexPos[0]);
+            min[1] = Math.min(min[1], vertexPos[1]);
+            min[2] = Math.min(min[2], vertexPos[2]);
+
+            max[0] = Math.max(max[0], vertexPos[0]);
+            max[1] = Math.max(max[1], vertexPos[1]);
+            max[2] = Math.max(max[2], vertexPos[2]);
+        }
+
+        const halfExtents = [
+            (max[0] - min[0]) / 2,
+            (max[1] - min[1]) / 2,
+            (max[2] - min[2]) / 2
+        ];
+
+        return (new AmmoLib.btBoxShape(new AmmoLib.btVector3(halfExtents[0], halfExtents[1], halfExtents[2])));
+    }
+
+    bvhStatic(AmmoLib, vertices, indices) {
+        // #1 Create btTriangleMesh
+        const triangleMesh = new AmmoLib.btTriangleMesh();
+
+        // #2 Add the triangles to the triangle mesh
+        for (let i = 0; i < indices.length; i += 3) {
+            const index0 = indices[i];
+            const index1 = indices[i + 1];
+            const index2 = indices[i + 2];
+
+            // Create Ammo vectors for each vertex
+            const vertex0 = new AmmoLib.btVector3(vertices[index0].position[0], vertices[index0].position[1], vertices[index0].position[2]);
+            const vertex1 = new AmmoLib.btVector3(vertices[index1].position[0], vertices[index1].position[1], vertices[index1].position[2]);
+            const vertex2 = new AmmoLib.btVector3(vertices[index2].position[0], vertices[index2].position[1], vertices[index2].position[2]);
+
+            // Add the triangles to the btTriangleMesh
+            triangleMesh.addTriangle(vertex0, vertex1, vertex2);
+
+            // Free the memory
+            AmmoLib.destroy(vertex0);
+            AmmoLib.destroy(vertex1);
+            AmmoLib.destroy(vertex2);
+        }
+
+        // #3 Create a collision shape (for static objects)
+        return(new AmmoLib.btBvhTriangleMeshShape(triangleMesh, true));
+    }
+
+    convexHull(AmmoLib, vertices) {
+        // For a dynamic mesh, we build a convex hull shape:
+        let shape = new AmmoLib.btConvexHullShape();
+
+        for (let i = 0; i < vertices.length; i ++) {
+            var vertexPos = vertices[i].position;
+            const vx = vertexPos[0];
+            const vy = vertexPos[1];
+            const vz = vertexPos[2];
+
+            // Create a temporary Ammo vector
+            const tempVec = new AmmoLib.btVector3(vx, vy, vz);
+
+            // Add point to the hull
+            shape.addPoint(tempVec, true);
+
+            // Destroy the temporary Ammo vector
+            AmmoLib.destroy(tempVec);
+        }
+
+        return shape;
+    }
+
     addPlayerCamera(physicsWorld, AmmoLib) {
         // Create a box collision shape
         const halfExtents = new AmmoLib.btVector3(0.3, 1, 0.3); // half dimensions of the box
@@ -283,7 +506,7 @@ export class CollisionDetection {
         // Create the rigid body
         const transform = new AmmoLib.btTransform();
         transform.setIdentity();
-        transform.setOrigin(new AmmoLib.btVector3(50, 2, 50));
+        transform.setOrigin(new AmmoLib.btVector3(50, 20, 50));
 
         const motionState = new AmmoLib.btDefaultMotionState(transform);
     
@@ -305,28 +528,8 @@ export class CollisionDetection {
 
         // Output bounding box coordinates
         const center = transform.getOrigin();
-        console.log("--------------------------------");
-        console.log("CAMERA");
-
-        const min = new AmmoLib.btVector3(
-            center.x() - halfExtents.x(),
-            center.y() - halfExtents.y(),
-            center.z() - halfExtents.z()
-        );
-
-        const max = new AmmoLib.btVector3(
-            center.x() + halfExtents.x(),
-            center.y() + halfExtents.y(),
-            center.z() + halfExtents.z()
-        );
-
-        console.log("Bounding Box Min:", min.x(), min.y(), min.z());
-        console.log("Bounding Box Max:", max.x(), max.y(), max.z());
-        console.log("--------------------------------");
     
         // Clean up temporary Ammo.js objects
-        AmmoLib.destroy(min);
-        AmmoLib.destroy(max);    
         AmmoLib.destroy(halfExtents);
         AmmoLib.destroy(transform);
         AmmoLib.destroy(localInertia);
@@ -380,16 +583,11 @@ export class CollisionDetection {
     
                 const origin = transform.getOrigin();
                 const rotation = transform.getRotation();
-                //console.log("--------------------------------");
-                //console.log("Stone Dude pos:", origin.x(), origin.y(), origin.z());
     
                 const node = this.scene.find(node => node.name === model.name);
                 const transformComponent = node.getComponentOfType(Transform);
     
                 if (transformComponent) { // naj bodo vsi dynamic objects na tleh ali da padajo
-                    /*if (origin.y() > 0) {
-                        origin.setY(0);
-                    }*/
                     transformComponent.translation = [origin.x(), origin.y(), origin.z()];
                     transformComponent.rotation = quat.fromValues(
                         rotation.x(),
@@ -398,18 +596,6 @@ export class CollisionDetection {
                         rotation.w()
                     );
                 }
-                //console.log("--------------------------------");
-
-                //console.log("Stone Dude pos:", origin.x(), origin.y(), origin.z());
-                //console.log("Stone dude translation:", transformComponent.translation);
-
-                /*this.rigidBodyMap.forEach((value, key) => {
-                    console.log("Rigid body name: ", value.name);
-                    if (value.name === "Stone dude") {
-                        console.log(key.getCenterOfMassTransform().getOrigin().x(), key.getCenterOfMassTransform().getOrigin().y(), key.getCenterOfMassTransform().getOrigin().z());
-                    }
-                });*/
-
 
                 AmmoLib.destroy(transform);
             }
@@ -444,10 +630,15 @@ export class CollisionDetection {
             for (let j = 0; j < numContacts; j++) {
                 const contactPoint = contactManifold.getContactPoint(j);
     
-                if (contactPoint.getDistance() <= 0) {
-                    //console.log("Collision detected between ", objectA.name, " and ", objectB.name);
+                if (contactPoint.getDistance() <= 0 && objectA.name != "Plane" && objectB.name != "Plane") {
+                    //console.log("Collision: ", objectA.name, " | ", objectB.name, " camera: ", this.camera.getComponentOfType(Transform).translation);
                 }
             }
         }
     }
+
+    delay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+    
 }

@@ -16,7 +16,7 @@ export class FirstPersonController {
         acceleration = 5,
         maxSpeed = 4,
         decay = 0.99999,
-        pointerSensitivity = 0.002,
+        pointerSensitivity = 0.001,
         cameraRigidBody = null,
     } = {}) {
         this.node = node;

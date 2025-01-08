@@ -28,7 +28,7 @@ await renderer.initialize();
 
 // Load the world model
 const worldLoader = new GLTFLoader();
-await worldLoader.load(new URL('./models/world-new/plane.gltf', import.meta.url));
+await worldLoader.load(new URL('./models/world-fun/world.gltf', import.meta.url));
 const scene = worldLoader.loadScene(worldLoader.defaultScene); // Add the model to the scene
 
 // Set up collision detection
@@ -51,12 +51,12 @@ light.addComponent(new Light({
     type: 'directional', // Sunlight type
     color: [1, 1, 1],
     intensity: 100.0,
-    castShadows: true, // Enable shadow casting
+    //castShadows: true, // Enable shadow casting
 }));
 
 light.addComponent({
     update(t, dt) {
-        const radius = 100; // Distance from the origin
+        /*const radius = 100; // Distance from the origin
         const speed = 0.05;   // Adjust speed for day-night cycle (radians per second)
 
         // Calculate new position using circular motion
@@ -65,7 +65,8 @@ light.addComponent({
         const z = 0; // Keep z constant for a 2D rotation
 
         // Update light position
-        lightTransform.translation = [x, y, z];
+        lightTransform.translation = [x, y, z];*/
+        lightTransform.translation = [0, 1000, 0];
     }
 });
 
