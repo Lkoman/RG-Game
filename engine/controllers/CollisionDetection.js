@@ -21,6 +21,11 @@ export class CollisionDetection {
         this.cameraRigidBody = null;
         this.regex = /\.\d{3}/; // za testiranje če je model an instance
 
+        // Game mechanics
+        this.pickUpObject = false;
+        this.teleport = false;
+        this.playLevel1 = false;
+
         // groups and masks
         this.GROUP_CAMERA = 1 << 0;
         this.GROUP_PLANE = 1 << 1;
@@ -375,7 +380,7 @@ export class CollisionDetection {
                 this.addObject(vertices, indices, AmmoLib, physicsWorld, 4, 0, position, rotation, scale, false, true, true, name)
                 .then(rigidBody => {
                     model.triggerRigidBody = rigidBody;
-                    this.triggerRigidBodyMap.set(rigidBody, { name: name });
+                    this.triggerRigidBodyMap.set(rigidBody.kB, { name: name });
                     //console.log("Object ", name, " added successfully.");
                 })
                 .catch((error) => {
@@ -703,46 +708,47 @@ export class CollisionDetection {
     checkCollisions(physicsWorld) {
         const dispatcher = physicsWorld.getDispatcher();
         const numManifolds = dispatcher.getNumManifolds();
-        //console.log(numManifolds);
-    
+        let triggerCollision = false;
+
         for (let i = 0; i < numManifolds; i++) {
             const contactManifold = dispatcher.getManifoldByIndexInternal(i);
             const bodyA = contactManifold.getBody0();
             const bodyB = contactManifold.getBody1();
 
-            var triggeredObject = null, body = null, a = null, b = null;
-
-            this.triggerRigidBodyMap.forEach((value, key) => {
-                if (key.kB === bodyA.kB) {
-                    a = value;
-                    body = bodyA;
-                } 
-                
-                if (key.kB === bodyB.kB) {
-                    b = value;
-                    body = bodyB;
-                }
-            });
-
-            if (a || b) {
-            console.log("-----------------------------");
-            if (a) {
-                console.log("Collision: ", a.name, body);
+            if (this.triggerRigidBodyMap.has(bodyA.kB)) {
+                this.checkForTriggers(bodyA);
+                triggerCollision = true;
             }
-            if (b) {
-                console.log("Collision: ", b.name, body);
-            }
-            console.log("-----------------------------");
         }
 
-            /*
-            const numContacts = contactManifold.getNumContacts();
-            for (let j = 0; j < numContacts; j++) {
-                const contactPoint = contactManifold.getContactPoint(j);
-    
-                if (contactPoint.getDistance() <= 0) {
-                }
-            }*/
+        if (!triggerCollision) {
+            this.pickUpObject = false;
+            this.teleport = false;
+            this.playLevel1 = false;
+        }
+    }
+
+    checkForTriggers(body) {
+        console.log(body.kB);
+        console.log(this.triggerRigidBodyMap.get(body.kB));
+
+        var triggeredObject = this.triggerRigidBodyMap.get(body.kB);
+
+        if (triggeredObject) {
+            if (triggeredObject.name.includes("PlayingBoard")) {
+                this.playLevel1 = true;
+                this.teleport = false;
+                this.pickUpObject = false;
+            }
+            else if (triggeredObject.name.includes("dy_X")) {
+                this.pickUpObject = true;
+                this.teleport = false;
+            }
+            else if (triggeredObject.name.includes("Portal")) {
+                this.teleport = true;
+                this.pickUpObject = false;
+                this.playLevel1 = false;
+            }
         }
     }
 

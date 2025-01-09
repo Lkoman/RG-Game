@@ -1,6 +1,21 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <style>
+        #webgpuCanvas {
+            position: absolute;
+            z-index: 0;
+            top: 0;
+            left: 0;
+        }
+        #textCanvas {
+            position: absolute;
+            z-index: 1;
+            top: 0;
+            left: 0;
+            pointer-events: none; /* Allows mouse events to pass through */
+        }
+    </style>
     <meta charset="utf-8">
     <title>Tic-Tac-Toe</title>
     <script type="importmap">
@@ -17,8 +32,9 @@
     <script src="./lib/ammo.js"></script>
 </head>
 <body>
-    <div class="fullscreen no-touch pixelated">
-        <canvas></canvas>
+    <div class="fullscreen no-touch">
+        <canvas id="webgpuCanvas"></canvas>
     </div>
+    <canvas id="textCanvas"></canvas>
 </body>
 </html>

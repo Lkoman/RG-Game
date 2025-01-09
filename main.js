@@ -22,7 +22,15 @@ const maxSubSteps = 10; // če zalagga
 // SCENE SETUP //
 /////////////////
 
-const canvas = document.querySelector('canvas');
+const canvas = document.getElementById('webgpuCanvas');
+const textCanvas = document.getElementById('textCanvas');
+
+const ctx = textCanvas.getContext('2d');
+// Text settings
+ctx.font = '15px Arial';
+ctx.textAlign = 'center';
+ctx.fillStyle = 'black';
+
 const renderer = new UnlitRenderer(canvas);
 await renderer.initialize();
 
@@ -59,7 +67,6 @@ light.addComponent({
     }
 });
 
-
 ////////////////////////
 // UPDATE AND RENDER //
 ///////////////////////
@@ -81,11 +88,48 @@ function update(t, dt) {
 function render() {
     // Render the scene
     renderer.render(scene, camera);
+
+    drawText();
 }
 
 function resize({ displaySize: { width, height }}) {
     camera.getComponentOfType(Camera).aspect = width / height;
 }
+
+function resizeCanvas() {
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    // Match textCanvas resolution to screen size
+    textCanvas.width = width;
+    textCanvas.height = height;
+
+    // Optional: Match webgpuCanvas size for consistency
+    webgpuCanvas.width = width;
+    webgpuCanvas.height = height;
+
+    // Adjust font size dynamically based on canvas height
+    ctx.font = `${Math.round(height / 30)}px Arial`; // Font size is 1/20th of canvas height
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'black';
+}
+
+resizeCanvas();
+
+function drawText() {
+    ctx.clearRect(0, 0, textCanvas.width, textCanvas.height); // Clear previous text
+
+    if (collisionDetection.pickUpObject) {
+        ctx.fillText('Press E to pick up', textCanvas.width /2, textCanvas.height - 100);
+    }
+    else if (collisionDetection.teleport) {
+        ctx.fillText('Press E to teleport', textCanvas.width /2, textCanvas.height - 100);
+    }
+    else if (collisionDetection.playLevel1) {
+        ctx.fillText('Press E to play', textCanvas.width /2, textCanvas.height - 100);
+    }
+}
+
 
 new ResizeSystem({ canvas, resize }).start();
 new UpdateSystem({ update, render }).start();
