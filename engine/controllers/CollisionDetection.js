@@ -55,7 +55,7 @@ export class CollisionDetection {
 
         // Dodamo vse nodes v sceni v tmpData, da jih potem razdelimo v modelsData in staticModelsData
         this.scene.traverse(node => {
-            //console.log(node);
+            console.log(node);
             if (node.name && !node.name.startsWith("nc_")) { // nc pomeni no collision
                 if (this.regex.test(node.name)) { // ČE JE INSTANCE
                     let imeOriginala = node.name;
@@ -111,49 +111,6 @@ export class CollisionDetection {
         tmpData.forEach(parentModel => {
             instances.forEach(instance => {
                 if (parentModel.name === instance.original) {
-                    
-                    // Fucked, nevem zakaj??
-                    /*console.log(instance.name);
-
-                    // Parent TRS matrices
-                    let parentTranslationM = this.createTranslationMatrix(parentModel.position);
-                    let parentRotationM = this.clampMatrix(this.quaternionToMatrix(parentModel.rotation), 0);
-                    let parentScaleM = this.createScaleMatrix(parentModel.scale);
-
-                    let localRotationM = this.clampMatrix(this.quaternionToMatrix(instance.rotation), 0);
-                    let localScaleM = this.createScaleMatrix(instance.scale);
-                    console.log("localRotationM: ", localRotationM);
-                    console.log("localScaleM: ", localScaleM);
-
-                    let localTranslationM = this.createTranslationMatrix(instance.position);
-                    console.log("localTranslationM: ", localTranslationM);
-
-                    // vrstni red S * R * T obrnjen
-                    let localTRS = this.multiplyMatrices(localTranslationM, this.multiplyMatrices(localRotationM, localScaleM));
-                    console.log("localTRS: ", localTRS);
-
-                    // vrstni red S * R * T obrnjen
-                    let parentTRS = this.multiplyMatrices(parentTranslationM, this.multiplyMatrices(parentRotationM, parentScaleM));
-                    console.log("parentTRS: ", parentTRS);
-
-                    // MULTIPLY PARENT TRS * CHILD TRS to get child world coords
-                    let worldMatrix = this.multiplyMatrices(parentTRS, localTRS);
-                    console.log("worldMatrix: ", worldMatrix);
-
-                    // DECOMPOSE WORLD MATRIX
-                    let worldTrans = [worldMatrix[0][3], worldMatrix[1][3], worldMatrix[2][3]];
-                    console.log("worldTrans: ", worldTrans);
-                    let worldScale = [
-                        Math.sqrt(worldMatrix[0][0] ** 2 + worldMatrix[0][1] ** 2 + worldMatrix[0][2] ** 2),
-                        Math.sqrt(worldMatrix[1][0] ** 2 + worldMatrix[1][1] ** 2 + worldMatrix[1][2] ** 2),
-                        Math.sqrt(worldMatrix[2][0] ** 2 + worldMatrix[2][1] ** 2 + worldMatrix[2][2] ** 2)
-                    ];                    
-                    console.log("worldScale: ", worldScale);
-                    let worldRotation;
-                    let normalizedMatrix = this.normalizeMatrix(worldScale[0], worldScale[1], worldScale[2], worldMatrix);
-                    worldRotation = this.matrixToQuaternion(normalizedMatrix);
-                    console.log("worldRotation: ", worldRotation);*/
-
 
                     // 5) Add the “instance” as a new model, but reusing the parent's geometry
                     tmpData.push({

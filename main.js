@@ -111,7 +111,6 @@ function resizeCanvas() {
     // Adjust font size dynamically based on canvas height
     ctx.font = `${Math.round(height / 30)}px Arial`; // Font size is 1/20th of canvas height
     ctx.textAlign = 'center';
-    ctx.fillStyle = 'black';
 }
 
 resizeCanvas();
