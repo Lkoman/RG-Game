@@ -72,11 +72,11 @@ export class FirstPersonController {
 
         // If shift is pressed, max speed is doubled.
         if (this.keys['ShiftLeft']) {
-            this.maxSpeed = 8;
-            maxSpeed = 8;
+            this.maxSpeed = 5;
+            maxSpeed = 3;
         } else {
-            this.maxSpeed = 4;
-            maxSpeed = 4;
+            this.maxSpeed = 3;
+            maxSpeed = 3;
         }
 
         // Map user input to the acceleration vector.

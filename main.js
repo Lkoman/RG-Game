@@ -51,21 +51,10 @@ light.addComponent(new Light({
     type: 'directional', // Sunlight type
     color: [1, 1, 1],
     intensity: 100.0,
-    //castShadows: true, // Enable shadow casting
 }));
 
 light.addComponent({
     update(t, dt) {
-        /*const radius = 100; // Distance from the origin
-        const speed = 0.05;   // Adjust speed for day-night cycle (radians per second)
-
-        // Calculate new position using circular motion
-        const x = radius * Math.sin(speed * t);
-        const y = radius * Math.cos(speed * t); // Moves along a vertical circle
-        const z = 0; // Keep z constant for a 2D rotation
-
-        // Update light position
-        lightTransform.translation = [x, y, z];*/
         lightTransform.translation = [0, 1000, 0];
     }
 });

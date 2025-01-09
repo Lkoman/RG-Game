@@ -16,9 +16,25 @@ export class CollisionDetection {
         this.staticModelsData = []; // za shranjevanje podatkov static meshov ki bodo combined
         this.modelsData = []; // za shranjevanje moving modelov, ki bodo seperate
         this.camera = scene.find(node => node.getComponentOfType(Camera));
-        this.rigidBodyMap = new Map(); // btRigidBody -> { name, or some info }
+        this.rigidBodyMap = new Map(); // map za collisione
+        this.triggerRigidBodyMap = new Map(); // map za triggerje
         this.cameraRigidBody = null;
         this.regex = /\.\d{3}/; // za testiranje če je model an instance
+
+        // groups and masks
+        this.GROUP_CAMERA = 1 << 0;
+        this.GROUP_PLANE = 1 << 1;
+        this.GROUP_STATIC = 1 << 2;
+        this.GROUP_STATIC_TRIGGER = 1 << 3;
+        this.GROUP_DYNAMIC = 1 << 4;
+        this.GROUP_DYNAMIC_TRIGGER = 1 << 5;
+
+        this.MASK_CAMERA = this.GROUP_PLANE | this.GROUP_STATIC | this.GROUP_STATIC_TRIGGER | this.GROUP_DYNAMIC | this.GROUP_DYNAMIC_TRIGGER;
+        this.MASK_PLANE = this.GROUP_DYNAMIC | this.GROUP_CAMERA;
+        this.MASK_STATIC = this.GROUP_CAMERA | this.GROUP_DYNAMIC;
+        this.MASK_STATIC_TRIGGER = this.GROUP_CAMERA;
+        this.MASK_DYNAMIC = this.GROUP_PLANE | this.GROUP_CAMERA | this.GROUP_STATIC;
+        this.MASK_DYNAMIC_TRIGGER = this.GROUP_CAMERA;
 
         this.handleInit();
     }
@@ -34,7 +50,7 @@ export class CollisionDetection {
 
         // Dodamo vse nodes v sceni v tmpData, da jih potem razdelimo v modelsData in staticModelsData
         this.scene.traverse(node => {
-            console.log(node);
+            //console.log(node);
             if (node.name && !node.name.startsWith("nc_")) { // nc pomeni no collision
                 if (this.regex.test(node.name)) { // ČE JE INSTANCE
                     let imeOriginala = node.name;
@@ -85,7 +101,7 @@ export class CollisionDetection {
             //console.log(node);
         });
 
-        console.log("instances: ", instances);
+        //console.log("instances: ", instances);
 
         tmpData.forEach(parentModel => {
             instances.forEach(instance => {
@@ -143,9 +159,14 @@ export class CollisionDetection {
                     rotation: instance.rotation,       // final world rotation (quaternion)
                     scale:    instance.scale      // final world scale
                     });
+
+                    parentModel.isOriginal = true;
                 }
             });
         });
+
+        // Remove original models from tmpData
+        tmpData = tmpData.filter(model => !model.isOriginal);
 
         console.log("tmpData: ", tmpData);
     
@@ -329,6 +350,8 @@ export class CollisionDetection {
             // Check for collisions
             this.checkCollisions(physicsWorld, AmmoLib);
         };
+
+        console.log(this.rigidBodyMap);
     }
 
     // Add all objects to the physics world, razdeljeni na static in dynamic
@@ -336,38 +359,58 @@ export class CollisionDetection {
         modelType.forEach(model => {
             const { vertices, indices, name, position, rotation, scale } = model;
             let aabb = false;
+            let sphere = false;
             if (name == "dy_stone dude") {
                 mass = 200;
-            }
-            if (name.startsWith("aabb_")) {
                 aabb = true;
+            } else if (name.startsWith("aabb_")) {
+                aabb = true;
+            } else if (name.startsWith("sphere_")) {
+                sphere = true;
+            } else if (name.startsWith("dy_apple")) {
+                mass = 0.3;
             }
-            if (name.startsWith("trigger_")) {
-                
+            if (name.endsWith("_trigger")) {
+                // flag = 4 je btCollisionObject.CF_NO_CONTACT_RESPONSE
+                this.addObject(vertices, indices, AmmoLib, physicsWorld, 4, 0, position, rotation, scale, false, true, true, name)
+                .then(rigidBody => {
+                    model.triggerRigidBody = rigidBody;
+                    this.triggerRigidBodyMap.set(rigidBody, { name: name });
+                    //console.log("Object ", name, " added successfully.");
+                })
+                .catch((error) => {
+                    if (modelType === this.modelsData) console.error("Failed to add triggerRigidBody for DYNAMIC object", name , error);
+                    else console.error("Failed to add triggerRigidBody for STATIC object", name, error);
+                });
             }
-            this.addObject(vertices, indices, AmmoLib, physicsWorld, flag, mass, position, rotation, scale, aabb)
+            this.addObject(vertices, indices, AmmoLib, physicsWorld, flag, mass, position, rotation, scale, aabb, sphere, false, name)
             .then(rigidBody => {
                 model.rigidBody = rigidBody;
                 this.rigidBodyMap.set(rigidBody, { name: name });
-                console.log("Object ", name, " added successfully.");
+                //console.log("Object ", name, " added successfully.");
             })
             .catch((error) => {
-                if (modelType === this.modelsData) console.error("Failed to add DYNAMIC object", name , error);
-                else console.error("Failed to add STATIC object", name, error);
+                if (modelType === this.modelsData) console.error("Failed to add rigidBody for DYNAMIC object", name , error);
+                else console.error("Failed to add rigidBody for STATIC object", name, error);
             });
 
             this.delay(50);
         });
     }
 
-    addObject(vertices, indices, AmmoLib, physicsWorld, flag, mass, initialPosition, initialRotation, initialScale, aabb) {
+    addObject(vertices, indices, AmmoLib, physicsWorld, flag, mass, initialPosition, initialRotation, initialScale, aabb, sphere, trigger, name) {
         return new Promise((resolve, reject) => {
             try {
                 var shape;
 
-                if (aabb) {
-                    shape = this.aabb(AmmoLib, vertices);
-                } else {
+                if (trigger) {
+                    shape = this.aabb_sphere(AmmoLib, vertices, "sphere", 1, 3);
+                } else if (aabb) {
+                    shape = this.aabb_sphere(AmmoLib, vertices, "aabb", 0, 0);
+                } else if (sphere) {
+                    shape = this.aabb_sphere(AmmoLib, vertices, "sphere", 0, 0);
+                }
+                else {
                     // --- STATIC body (flag == 1) ---
                     if (flag == 1) {
                         shape = this.bvhStatic(AmmoLib, vertices, indices);
@@ -375,12 +418,15 @@ export class CollisionDetection {
 
                     // --- DYNAMIC body (flag == 0) ---
                     else if (flag == 0) {
-                        //shape = this.convexHull(AmmoLib, vertices);
-                        shape = this.aabb(AmmoLib, vertices);
+                        shape = this.convexHull(AmmoLib, vertices);
+                        //shape = this.aabb_sphere(AmmoLib, vertices, "aabb", 0, 0);
                     }
                 }
 
-                shape.setMargin(0.05);
+                // če je ta rigid body a trigger mu dodamo margin
+                if (trigger) {
+                    shape.setMargin(20);
+                }
 
                 // #4 Define the initial position, rotation, and scale of the object
                 const transform = new AmmoLib.btTransform();
@@ -409,8 +455,26 @@ export class CollisionDetection {
 
                 rigidBody.setCollisionFlags(flag); // flag = 1 for static objects, 2 for kinematic objects, 0 for dynamic
 
-                // #5 Add the rigid body to the physics world
-                physicsWorld.addRigidBody(rigidBody);
+                // #5 Add the rigid body to the physics world, with speicifc groups and masks, so they know how to interact with each other
+                if (name.startsWith("Plane") || name.startsWith("Hell")) {
+                    physicsWorld.addRigidBody(rigidBody, this.GROUP_PLANE, this.MASK_PLANE);
+                }
+                // dynamic objects (triggers and non triggers)
+                else if (name.startsWith("dy_")) {
+                    if (trigger) {
+                        physicsWorld.addRigidBody(rigidBody, this.GROUP_DYNAMIC_TRIGGER, this.MASK_DYNAMIC_TRIGGER);
+                    } else {
+                        physicsWorld.addRigidBody(rigidBody, this.GROUP_DYNAMIC, this.MASK_DYNAMIC);
+                    }
+                }
+                // static objects (triggers and non triggers)
+                else {
+                    if (trigger) {
+                        physicsWorld.addRigidBody(rigidBody, this.GROUP_STATIC_TRIGGER, this.MASK_STATIC_TRIGGER);
+                    } else {
+                        physicsWorld.addRigidBody(rigidBody, this.GROUP_STATIC, this.MASK_STATIC);
+                    }
+                }
 
                 // Resolve the promise
                 resolve(rigidBody);
@@ -422,7 +486,7 @@ export class CollisionDetection {
         });
     }
 
-    aabb(AmmoLib, vertices) {
+    aabb_sphere(AmmoLib, vertices, type, trigger, triggerMargin) {
         let min = [Infinity, Infinity, Infinity];
         let max = [-Infinity, -Infinity, -Infinity];
 
@@ -444,7 +508,16 @@ export class CollisionDetection {
             (max[2] - min[2]) / 2
         ];
 
-        return (new AmmoLib.btBoxShape(new AmmoLib.btVector3(halfExtents[0], halfExtents[1], halfExtents[2])));
+        if (type == "aabb") {
+            return (new AmmoLib.btBoxShape(new AmmoLib.btVector3(halfExtents[0], halfExtents[1], halfExtents[2])));
+        } else if (type == "sphere") {
+            if (trigger) {
+                return (new AmmoLib.btSphereShape(triggerMargin));
+            }
+            return (new AmmoLib.btSphereShape(halfExtents[0]));
+        } else {
+            console.error("Invalid type for aabb_sphere function.");
+        }
     }
 
     bvhStatic(AmmoLib, vertices, indices) {
@@ -502,6 +575,14 @@ export class CollisionDetection {
         // Create a box collision shape
         const halfExtents = new AmmoLib.btVector3(0.3, 1, 0.3); // half dimensions of the box
         const boxShape = new AmmoLib.btBoxShape(halfExtents);
+
+        /*const radius = 0.3;
+        const sphereShape = new AmmoLib.btSphereShape(radius);
+
+        const scale = new AmmoLib.btVector3(0.3, 2, 0.3);
+
+        const scaleVector = new AmmoLib.btVector3(scale[0], scale[1], scale[2]);
+        sphereShape.setLocalScaling(scaleVector);*/
     
         // Create the rigid body
         const transform = new AmmoLib.btTransform();
@@ -524,10 +605,7 @@ export class CollisionDetection {
         rigidBody.setActivationState(4); // Disable deactivation for the camera
     
         // Add the rigid body to the physics world
-        physicsWorld.addRigidBody(rigidBody);
-
-        // Output bounding box coordinates
-        const center = transform.getOrigin();
+        physicsWorld.addRigidBody(rigidBody, this.GROUP_CAMERA, this.MASK_CAMERA);
     
         // Clean up temporary Ammo.js objects
         AmmoLib.destroy(halfExtents);
@@ -535,6 +613,8 @@ export class CollisionDetection {
         AmmoLib.destroy(localInertia);
 
         camRigidBody = rigidBody;
+
+        this.camera.components[1].fovy = 0.7;
 
         this.rigidBodyMap.set(rigidBody, { name: "Camera" });
         this.cameraRigidBody = rigidBody;
@@ -563,14 +643,19 @@ export class CollisionDetection {
             );
         }
 
+        //console.log(this.triggerRigidBodyMap);
         //console.log("Camera pos:", cameraTransform.translation);
         //console.log("Camera rigid:", origin.x(), origin.y(), origin.z());
+        //console.log(this.camera); // Log camera to confirm it's the active one
+
             
         AmmoLib.destroy(transform);
     }
 
     syncObjects(AmmoLib) {
         this.modelsData.forEach(model => {
+            // odstrani rigidBody če pade dol
+
             if (!model.rigidBody) {
                 console.warn(`Rigid body not found for model: ${model.name}`);
                 return;
@@ -580,13 +665,13 @@ export class CollisionDetection {
             if (motionState) {
                 const transform = new AmmoLib.btTransform();
                 motionState.getWorldTransform(transform);
-    
+        
                 const origin = transform.getOrigin();
                 const rotation = transform.getRotation();
-    
+        
                 const node = this.scene.find(node => node.name === model.name);
                 const transformComponent = node.getComponentOfType(Transform);
-    
+        
                 if (transformComponent) { // naj bodo vsi dynamic objects na tleh ali da padajo
                     transformComponent.translation = [origin.x(), origin.y(), origin.z()];
                     transformComponent.rotation = quat.fromValues(
@@ -597,6 +682,19 @@ export class CollisionDetection {
                     );
                 }
 
+                // Če ima model tudi trigger body, mu nastavimo triggerBody = rigidBody position
+                if (model.triggerRigidBody) {
+                    //console.log("Setting trigger body position: ", origin.x(), origin.y(), origin.z());
+                    const triggerBodyTransform = new AmmoLib.btTransform();
+                    model.triggerRigidBody.getMotionState().getWorldTransform(triggerBodyTransform);
+
+                    triggerBodyTransform.setOrigin(origin);
+                    model.triggerRigidBody.setWorldTransform(triggerBodyTransform);
+                    model.triggerRigidBody.getMotionState().setWorldTransform(triggerBodyTransform);
+
+                    AmmoLib.destroy(triggerBodyTransform);
+                }
+        
                 AmmoLib.destroy(transform);
             }
         });
@@ -612,28 +710,39 @@ export class CollisionDetection {
             const bodyA = contactManifold.getBody0();
             const bodyB = contactManifold.getBody1();
 
-            var objectA, objectB;
+            var triggeredObject = null, body = null, a = null, b = null;
 
-            this.rigidBodyMap.forEach((value, key) => {
+            this.triggerRigidBodyMap.forEach((value, key) => {
                 if (key.kB === bodyA.kB) {
-                   objectA = value;
-                }
+                    a = value;
+                    body = bodyA;
+                } 
+                
                 if (key.kB === bodyB.kB) {
-                    objectB = value;
+                    b = value;
+                    body = bodyB;
                 }
             });
 
-            //console.log("objectA ", objectA);
-            //console.log("objectB ", objectB);
-    
+            if (a || b) {
+            console.log("-----------------------------");
+            if (a) {
+                console.log("Collision: ", a.name, body);
+            }
+            if (b) {
+                console.log("Collision: ", b.name, body);
+            }
+            console.log("-----------------------------");
+        }
+
+            /*
             const numContacts = contactManifold.getNumContacts();
             for (let j = 0; j < numContacts; j++) {
                 const contactPoint = contactManifold.getContactPoint(j);
     
-                if (contactPoint.getDistance() <= 0 && objectA.name != "Plane" && objectB.name != "Plane") {
-                    //console.log("Collision: ", objectA.name, " | ", objectB.name, " camera: ", this.camera.getComponentOfType(Transform).translation);
+                if (contactPoint.getDistance() <= 0) {
                 }
-            }
+            }*/
         }
     }
 
