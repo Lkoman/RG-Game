@@ -9,6 +9,7 @@ import { getGlobalModelMatrix } from '../core/SceneUtils.js';
 // export this.cameraRigidBody in AmmoLib instance za uporabo v FirstPersonController
 export let camRigidBody;
 export let AmmoLibExport;
+export let gameMode = false;
 
 //////////////////////////
 // COLLISION DETECTION //
@@ -240,10 +241,11 @@ export class CollisionDetection {
 
     // Ta funckija se zgodi enkrat na začetku, updatePhysics pa vsak frame - kličemo jo v main.js update
     setupGameLoop(physicsWorld, AmmoLib) {
-        this.updatePhysics = (timeStep, maxSubSteps, dt) => {
+        this.updatePhysics = (timeStep, maxSubSteps) => {
             // Advances the physics world
             physicsWorld.stepSimulation(timeStep, maxSubSteps);
-
+        };
+        this.setPositions = (dt) => {
             // Translation, rotation kamere = cameraRigidBody position, rotation
             this.syncPlayerCameraTR(this.cameraRigidBody, this.camera, AmmoLib, dt);
 
@@ -534,9 +536,10 @@ export class CollisionDetection {
         const transform = new AmmoLib.btTransform();
         this.cameraRigidBody.getMotionState().getWorldTransform(transform);
         transform.setOrigin(new AmmoLib.btVector3(coordinatesT[0], coordinatesT[1], coordinatesT[2]));
-        transform.setRotation(new AmmoLib.btQuaternion(coordinateR[0], coordinateR[1], coordinateR[2], coordinateR[3]));
+        this.camera.getComponentOfType(Transform).rotation = quat.fromEuler(quat.create(), 0, 70, 0);
+        //this.camera.rotation = quat.fromValues(coordinateR[0], coordinateR[1], coordinateR[2], coordinateR[3]);
+        //transform.setRotation(new AmmoLib.btQuaternion(coordinateR[0], coordinateR[1], coordinateR[2], coordinateR[3]));
         this.cameraRigidBody.setWorldTransform(transform);
-        this.cameraRigidBody.getMotionState().getWorldTransform(transform);
         AmmoLib.destroy(transform);
     }
       
@@ -656,19 +659,19 @@ export class CollisionDetection {
         if (cameraTransform) {
             // nastavimo translation kamere na njen rigid body position
             cameraTransform.translation = [origin.x(), origin.y() + 0.8, origin.z()];
-            cameraTransform.rotation = quat.fromValues(
+            /*cameraTransform.rotation = quat.fromValues(
                 rotation.x(),
                 rotation.y(),
                 rotation.z(),
                 rotation.w()
-            );
+            );*/
         }
 
         // IZPIS CAMERA POSITION
-        //console.log("Camera pos:", cameraTransform.translation);
+        //console.log("Camera trans:", cameraTransform.translation, cameraTransform.rotation);
 
         // IZPIS CAMERA RIGID BODY POSITION
-        //console.log("Camera rigid:", origin.x(), origin.y(), origin.z());
+        //console.log("Camera rigid:", origin.x(), origin.y(), origin.z(), " , ", rotation.x(), rotation.y(), rotation.z(), rotation.w());
             
         AmmoLib.destroy(transform);
     }

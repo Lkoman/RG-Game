@@ -2,7 +2,7 @@ import { quat, vec3, mat4 } from 'glm';
 
 import { Transform } from '../core/Transform.js';
 
-import { camRigidBody, AmmoLibExport as AmmoLib } from './CollisionDetection.js';
+import { camRigidBody, AmmoLibExport as AmmoLib} from './CollisionDetection.js';
 
 export let maxSpeed = 5;
 
@@ -142,7 +142,7 @@ export class FirstPersonController {
 
         // handle camera orientation by directly setting node’s rotation
         const transform = this.node.getComponentOfType(Transform);
-        if (transform) {
+        if (transform && !this.gameMode) {
             // We'll let Bullet handle position, but we'll do rotation ourselves
             const rotation = quat.create();
             quat.rotateY(rotation, rotation, this.yaw);

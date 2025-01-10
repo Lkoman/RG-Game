@@ -18,6 +18,8 @@ import { AmmoLibExport as ammoLib } from './engine/controllers/CollisionDetectio
 
 const timeStep = 1 / 60; // 60 FPS
 const maxSubSteps = 10; // če zalagga
+let onKeyDownBool = false;
+let saveEvent;
 
 /////////////////
 // SCENE SETUP //
@@ -56,7 +58,7 @@ scene.addComponent(collisionDetection);
 //
 const camera = scene.find(node => node.getComponentOfType(Camera));
 const firstPerosnController = new FirstPersonController(camera, canvas);
-camera.getComponentOfType(Transform).rotation = quat.fromEuler(quat.create(), 0, 70, 0);
+camera.getComponentOfType(Transform).rotation = quat.fromEuler(quat.create(), 0, 0, 0);
 camera.addComponent(firstPerosnController);
 
 
@@ -88,6 +90,11 @@ function update(t, dt) {
     // Update physics
     if (collisionDetection.updatePhysics) {
         collisionDetection.updatePhysics(timeStep, maxSubSteps);
+        if (onKeyDownBool) {
+            onKeydown(saveEvent);
+            onKeyDownBool = false;
+        }
+        collisionDetection.setPositions(dt);
     }
 
     // Update all components
@@ -175,9 +182,12 @@ function onKeydown(event) {
     }
 }
 
-document.addEventListener('keydown', onKeydown);
+function setOnKeyDown(event) {
+    onKeyDownBool = true;
+    saveEvent = event;
+}
 
-
+document.addEventListener('keydown', setOnKeyDown);
 
 new ResizeSystem({ canvas, resize }).start();
 new UpdateSystem({ update, render }).start();
