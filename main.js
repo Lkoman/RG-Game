@@ -31,7 +31,6 @@ const textCanvas = document.getElementById('textCanvas'); // Text canvas za izpi
 
 // Text canvas settings
 const ctx = textCanvas.getContext('2d');
-ctx.font = '15px Arial';
 ctx.textAlign = 'center';
 ctx.fillStyle = 'black';
 
@@ -114,6 +113,12 @@ function resize({ displaySize: { width, height }}) {
 function drawText() {
     ctx.clearRect(0, 0, textCanvas.width, textCanvas.height); // Clear previous text
 
+    // Napišemo število pobranih X-ov, numPoints dobimo iz CollisionDetection.js
+    ctx.fillText("X", 50, 50);
+    ctx.fillText(collisionDetection.numPobranihX, 100, 50);
+    ctx.fillText("/ 5", 135, 50);
+
+    // Napišemo text, ki se izpiše glede na collisionDetection (game mechanics)
     if (collisionDetection.pickUpObject) {
         ctx.fillText('Press E to pick up', textCanvas.width /2, textCanvas.height - 100);
     }
@@ -139,7 +144,7 @@ function resizeCanvas() {
     webgpuCanvas.height = height;
 
     // Adjust font size dynamically based on canvas height
-    ctx.font = `${Math.round(height / 30)}px Arial`; // Font size is 1/20th of canvas height
+    ctx.font = `${Math.round(height / 30)}px Arial`; // Font size is 1/30th of canvas height
     ctx.textAlign = 'center';
 }
 
