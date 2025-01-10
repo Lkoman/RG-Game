@@ -62,6 +62,7 @@ export class CollisionDetection {
         this.pickUpObject = false;
         this.teleport = false;
         this.playLevel1 = false;
+        this.numPobranihX = 0;
 
         //
         // GROUPS AND MASKS
@@ -85,9 +86,9 @@ export class CollisionDetection {
 
     handleInit() {
 
-        //////////////////////////////////////////////////////////////
-        // IMPORT MODELS in RAZDELJEVANJE V TABELE (static/dynamic) //
-        //////////////////////////////////////////////////////////////
+        /////////////////////////////////////////////////////////////////////////
+        // TRAVERSE MODELS iz scene in RAZDELJEVANJE V TABELE (static/dynamic) //
+        ////////////////////////////////////////////////////////////////////////
 
         var tmpData = [];
         let instances = [];
@@ -191,9 +192,8 @@ export class CollisionDetection {
             }
         });
 
-        console.log("modelsData: ", this.modelsData);
-        console.log("staticModelsData: ", this.staticModelsData);
-
+        //console.log("modelsData: ", this.modelsData);
+        //console.log("staticModelsData: ", this.staticModelsData);
 
         /////////////////
         // IMPORT AMMO //
@@ -217,7 +217,9 @@ export class CollisionDetection {
             this.addAllObjects(physicsWorld, AmmoLib, this.modelsData, 0, 1); // flag = 0, mass = 1 for dynamic
             this.addAllObjects(physicsWorld, AmmoLib, this.staticModelsData, 1, 0); // flag = 1, mass = 0 for static
 
+            //
             // Dodamo rigidBody okoli kamere - to je player v physics world
+            //
             this.cameraRigidBody = this.addPlayerCameraRigidBody(physicsWorld, AmmoLib);
             if (!this.cameraRigidBody) {
                 console.error("Failed to add camera rigid body.");
