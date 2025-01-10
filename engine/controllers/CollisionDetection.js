@@ -537,13 +537,24 @@ export class CollisionDetection {
         transform.setOrigin(new AmmoLib.btVector3(coordinatesT[0], coordinatesT[1], coordinatesT[2]));
         this.cameraRigidBody.setWorldTransform(transform);
 
-        this.camera.getComponentOfType(Transform).rotation = quat.fromEuler(quat.create(), 0, 70, 0);
+        this.camera.getComponentOfType(Transform).rotation = quat.fromEuler(quat.create(), coordinateR[0], coordinateR[1], coordinateR[2]);
         //this.camera.rotation = quat.fromValues(coordinateR[0], coordinateR[1], coordinateR[2], coordinateR[3]);
         //transform.setRotation(new AmmoLib.btQuaternion(coordinateR[0], coordinateR[1], coordinateR[2], coordinateR[3]));
 
         AmmoLib.destroy(transform);
     }
-      
+    
+    updateXPosition(x, coordinatesT, AmmoLib){
+        const transform = new AmmoLib.btTransform();
+        const model = this.modelsData.find(m => m.name === x.name);
+        model.rigidBody.getMotionState().getWorldTransform(transform);
+        transform.setOrigin(new AmmoLib.btVector3(coordinatesT[0], coordinatesT[1], coordinatesT[2]));
+        model.rigidBody.setWorldTransform(transform);
+
+        x.getComponentOfType(Transform).translation = [coordinatesT[0], coordinatesT[1], coordinatesT[2]];
+        
+        
+    }
 
     syncObjects(AmmoLib) {
         this.modelsData.forEach(model => {

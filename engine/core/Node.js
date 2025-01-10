@@ -67,4 +67,15 @@ export class Node {
         return this.components.filter(component => component instanceof type);
     }
 
+    setComponentTranslation(type, newTranslation) {
+        const component = this.getComponentOfType(type);
+        if (component && component.translation) {
+            component.translation[0] = newTranslation[0];
+            component.translation[1] = newTranslation[1];
+            component.translation[2] = newTranslation[2];
+        } else {
+            console.warn(`Component of type ${type.name} with translation not found.`);
+        }
+    }
+
 }

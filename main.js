@@ -11,6 +11,7 @@ import { UnlitRenderer } from 'engine/renderers/UnlitRenderer.js';
 import { FirstPersonController } from './engine/controllers/FirstPersonController.js';
 import { CollisionDetection } from './engine/controllers/CollisionDetection.js';
 import { AmmoLibExport as ammoLib } from './engine/controllers/CollisionDetection.js';
+import { getLocalModelMatrix } from './engine/core/SceneUtils.js';
 
 ////////////////
 // VARIABLES //
@@ -22,6 +23,25 @@ let onKeyDownBool = false;
 let saveEvent;
 
 /////////////////
+// FRONT PAGE ///
+/////////////////
+document.addEventListener('DOMContentLoaded', () => {
+    const startButton = document.getElementById('start-button');
+    const frontPage = document.getElementById('front-page');
+    const instructions = document.getElementById('how-to-play');
+
+    startButton.addEventListener('click', () => {
+        // Hide the front page and show the game canvas
+        frontPage.style.display = 'none';
+        webgpuCanvas.style.display = 'block';
+        textCanvas.style.display = 'block';
+
+        // Initialize and start the game
+        render();
+    });
+    instructions.addEventListener('click', () => {});
+});
+/////////////////
 // SCENE SETUP //
 /////////////////
 
@@ -31,10 +51,12 @@ let saveEvent;
 const canvas = document.getElementById('webgpuCanvas'); // WebGPU canvas za izris igre
 const textCanvas = document.getElementById('textCanvas'); // Text canvas za izpis texta nad igro
 
+
 // Text canvas settings
 const ctx = textCanvas.getContext('2d');
 ctx.textAlign = 'center';
 ctx.fillStyle = 'black';
+
 
 // WebGPU canvas settings
 const renderer = new UnlitRenderer(canvas);
@@ -61,7 +83,6 @@ const firstPerosnController = new FirstPersonController(camera, canvas);
 camera.getComponentOfType(Transform).rotation = quat.fromEuler(quat.create(), 0, 0, 0);
 camera.addComponent(firstPerosnController);
 
-
 //
 // Add a light - sun
 //
@@ -70,12 +91,15 @@ scene.addChild(light);
 light.addComponent(new Transform({
     translate: [0, 1000, 0],
 }));
+
+
 const lightTransform = light.getComponentOfType(Transform);
 light.addComponent(new Light({
     type: 'directional', // Sun
     color: [1, 1, 1],
     intensity: 100.0,
 }));
+
 light.addComponent({
     update(t, dt) {
         lightTransform.translation = [0, 1000, 0];
@@ -165,7 +189,13 @@ function onKeydown(event) {
     if ((event.key === 'E') || (event.key === 'e')) {
         console.log('E key pressed');
        if(collisionDetection.pickUpObject){
-            PickUpX();
+            const names = ['dy_X1_trigger', 'dy_X2_trigger', 'dy_X3_trigger', 'dy_X4_trigger', 'dy_X5_trigger'];
+            const x = scene.find(node => names.includes(node.name));
+            
+            // Now the node's transformation matrix is updated, so reapply it
+            //x.getComponentOfType(Transform).matrix = matrix;
+            collisionDetection.updateXPosition(x, [0,0,0], ammoLib);
+
        }
        else if(collisionDetection.teleport){
             console.log('Teleport');
@@ -174,35 +204,13 @@ function onKeydown(event) {
             console.log('Play level 1');
             firstPerosnController.gameMode = true;
             //collisionDetection.syncPlayerCameraTR(collisionDetection.cameraRigidBody, collisionDetection.camera, ammoLib, 0);
-            collisionDetection.updatePlayerPosition([-39, 16, -53], [0.7071, 0, 1, 0], ammoLib);
+            collisionDetection.updatePlayerPosition([-39, 16, -50], [0, 0,  0], ammoLib);
        }
        else if(firstPerosnController.gameMode){
             firstPerosnController.gameMode = false;
             //collisionDetection.syncPlayerCameraTR(collisionDetection.cameraRigidBody, collisionDetection.camera, ammoLib, 1);
             collisionDetection.updatePlayerPosition([-40.38089370727539, 14, -55],[0.5126658082008362, -0.4870048761367798, 0.4870048463344574, 0.512665867805481],  ammoLib);
         }
-    }
-}
-
-function PickUpX(){
-    const names = ['dy_X1_trigger', 'dy_X2_trigger', 'dy_X3_trigger', 'dy_X4_trigger', 'dy_X5_trigger'];
-    const x = scene.find(node => names.includes(node.name));
-    if(x){
-        console.log('X picked up');
-        const transform = x.getComponentOfType(Transform);
-        const position = transform.translation;
-        transform.translation = [0,0,0];
-        const rigidBody = collisionDetection.rigidBodyMap.get(x);
-        if (rigidBody) {
-            const physicsTransform = new Ammo.btTransform();
-            rigidBody.getMotionState().getWorldTransform(physicsTransform);
-            physicsTransform.setOrigin(new Ammo.btVector3(0, 0, 0));
-            rigidBody.setWorldTransform(physicsTransform);
-            rigidBody.getMotionState().setWorldTransform(physicsTransform);
-            Ammo.destroy(physicsTransform);
-            console.log("X is rigidBody")
-        }
-        collisionDetection.numPobranihX++;
     }
 }
 

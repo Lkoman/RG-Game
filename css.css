@@ -1,0 +1,81 @@
+#webgpuCanvas {
+    position: absolute;
+    z-index: 0;
+    top: 0;
+    left: 0;
+}
+#textCanvas {
+    position: absolute;
+    z-index: 1;
+    top: 0;
+    left: 0;
+    pointer-events: none; /* Allows mouse events to pass through */
+}
+#front-page {
+    position: absolute;
+    height: 100%;
+    width: 100%;
+    background-image: url('model/bacground2.png');
+    background-size: cover;
+    background-position: center;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    filter: brightness(0.6);
+}
+#title-container {
+    position: absolute;
+    top: 50%;
+    left: 48%;
+    transform: translate(-50%, -50%);
+    width: 400px;
+    height: 100px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    background-color: rgb(4, 141, 77);
+    border-radius: 8px;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.title {
+    font-size: 3rem; /* Size of the title */
+    letter-spacing: 4px;
+    text-shadow: 4px 4px 10px rgb(255, 254, 254);
+    margin: 0;
+    padding: 20px;
+    font-family: 'Press Start 2P', fantasy; /* Retro font */
+}
+#start-button {
+    position: absolute;
+    top: 60%;
+    left: 40%;
+    background-color: #2e8b57;
+    border: none;
+    color: white;
+    font-size: 2rem;
+    padding: 20px 40px;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s ease;
+}
+#how-to-play-button{
+    position: absolute;
+    top: 70%;
+    left: 42%;
+    background-color: #2e8b57;
+    border: none;
+    color: white;
+    font-size: 1rem;
+    padding: 20px 40px;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s ease;
+}
