@@ -173,13 +173,13 @@ function onKeydown(event) {
        else if(collisionDetection.playLevel1){
             console.log('Play level 1');
             firstPerosnController.gameMode = true;
-            collisionDetection.syncPlayerCameraTR(collisionDetection.cameraRigidBody, collisionDetection.camera, ammoLib, 0);
-            collisionDetection.updatePLayerPosition([-39, 16, -53], [0.7071, 0, 1, 0], ammoLib);
+            //collisionDetection.syncPlayerCameraTR(collisionDetection.cameraRigidBody, collisionDetection.camera, ammoLib, 0);
+            collisionDetection.updatePlayerPosition([-39, 16, -53], [0.7071, 0, 1, 0], ammoLib);
        }
        else if(firstPerosnController.gameMode){
             firstPerosnController.gameMode = false;
-            collisionDetection.syncPlayerCameraTR(collisionDetection.cameraRigidBody, collisionDetection.camera, ammoLib, 1);
-            collisionDetection.updatePLayerPosition([-40.38089370727539, 14, -55],[0.5126658082008362, -0.4870048761367798, 0.4870048463344574, 0.512665867805481],  ammoLib);
+            //collisionDetection.syncPlayerCameraTR(collisionDetection.cameraRigidBody, collisionDetection.camera, ammoLib, 1);
+            collisionDetection.updatePlayerPosition([-40.38089370727539, 14, -55],[0.5126658082008362, -0.4870048761367798, 0.4870048463344574, 0.512665867805481],  ammoLib);
         }
     }
 }

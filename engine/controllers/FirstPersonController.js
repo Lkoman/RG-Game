@@ -2,7 +2,7 @@ import { quat, vec3, mat4 } from 'glm';
 
 import { Transform } from '../core/Transform.js';
 
-import { camRigidBody, AmmoLibExport as AmmoLib} from './CollisionDetection.js';
+import { camRigidBody, AmmoLibExport as AmmoLib } from './CollisionDetection.js';
 
 export let maxSpeed = 5;
 
