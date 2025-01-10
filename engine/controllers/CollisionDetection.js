@@ -16,16 +16,17 @@ export let AmmoLibExport;
 /* V temu class-u se naredi 
     - (handleInit) instanca Ammo.js
     - (handleInit) iz scene izluščijo vsi modeli/nodes in razporedijo v pravilne tabele (static -> this.staticModelsData, dynamic -> this.modelsData, nc_ -> nikamor)
-        - camera, static models (plane, trees, flowers, grass, portal, playing board, ...), dynamic models (stone dude, apples, X's, ...) in modeli brez rigidBody-jev (nodes od class-ov, ki so dodani sceni, light in modeli ki se začnejo z nc_(to pomeni no collision))
-        - static se delijo (imajo vsi rigid bodies)
-            - static podlaga (plane, hell)
-            - static objects (trees, flowers, grass)
-            - triggers (portal, playing board) (imajo dodatno še rigid body za trigger, ki je enak kot navaden rigidBody + margin)
-        - dynamic se delijo
-            - dynamic objects (stone dude, apples)
-            - triggers (X's) (imajo dodatno še rigid body za trigger, ki je enak kot navaden rigidBody + margin)
+        - DELITEV MODELOV
+            - camera, static models (plane, trees, flowers, grass, portal, playing board, ...), dynamic models (stone dude, apples, X's, ...) in modeli brez rigidBody-jev (nodes od class-ov, ki so dodani sceni, light in modeli ki se začnejo z nc_(to pomeni no collision))
+            - static se delijo (imajo vsi rigid bodies)
+                - static podlaga (plane, hell)
+                - static objects (trees, flowers, grass)
+                - triggers (portal, playing board) (imajo dodatno še rigid body za trigger, ki je enak kot navaden rigidBody + margin)
+            - dynamic se delijo
+                - dynamic objects (stone dude, apples)
+                - triggers (X's) (imajo dodatno še rigid body za trigger, ki je enak kot navaden rigidBody + margin)
         - interakcije med skupinami modelov so definirane z groups in masks
-        - INSTANCES: v modelu so vsi modeli, ki imajo instance - torej parent modeli na 0, 0, 0 (TRS), instance-i so tako v word coordinates. Instances se končajo z . in tremi številkami (.000, .099, .765)
+        - INSTANCES: v gltf so vsi modeli, ki imajo instance - torej parent modeli na 0, 0, 0 (TRS), instance-i so tako v word coordinates. Instances se končajo z . in tremi številkami (.000, .099, .765)
     - (addAllObjects, addObject) Za vsak model v staticModelsData in modelsData se naredi rigidBody in se doda v physics world
         - Za vse modele ki so označeni z _trigger se naredi še triggerRigidBody
         - (addPlayerCameraRigidBody) Za kamero se naredi poseben rigidBody, ker je edini objekt ki nima fizičnega modela
