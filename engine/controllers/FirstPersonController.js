@@ -18,6 +18,7 @@ export class FirstPersonController {
         decay = 0.99999,
         pointerSensitivity = 0.001,
         cameraRigidBody = null,
+        gameMode = false
     } = {}) {
         this.node = node;
         this.domElement = domElement;
@@ -29,7 +30,7 @@ export class FirstPersonController {
         this.pitch = pitch;
         this.yaw = yaw;
         this.mass = mass;
-
+        
         this.velocity = velocity;
         this.acceleration = acceleration;
         this.maxSpeed = maxSpeed;
@@ -37,6 +38,7 @@ export class FirstPersonController {
         this.pointerSensitivity = pointerSensitivity;
 
         this.spacePressed = false;
+        this.gameMode = gameMode;
 
         this.initHandlers();
     }
@@ -78,26 +80,28 @@ export class FirstPersonController {
             this.maxSpeed = 3;
             maxSpeed = 3;
         }
-
         // Map user input to the acceleration vector.
         const acc = vec3.create();
-        if (this.keys['KeyW']) {
-            vec3.add(acc, acc, forward);
-        }
-        if (this.keys['KeyS']) {
-            vec3.sub(acc, acc, forward);
-        }
-        if (this.keys['KeyD']) {
-            vec3.add(acc, acc, right);
-        }
-        if (this.keys['KeyA']) {
-            vec3.sub(acc, acc, right);
-        }
-        // Jump
-        if (this.keys['Space'] && !this.spacePressed) {
-            vec3.add(acc, acc, up);
+        if(this.gameMode === false){
+            
+            if (this.keys['KeyW']) {
+                vec3.add(acc, acc, forward);
+            }
+            if (this.keys['KeyS']) {
+                vec3.sub(acc, acc, forward);
+            }
+            if (this.keys['KeyD']) {
+                vec3.add(acc, acc, right);
+            }
+            if (this.keys['KeyA']) {
+                vec3.sub(acc, acc, right);
+            }
+            // Jump
+            if (this.keys['Space'] && !this.spacePressed) {
+                vec3.add(acc, acc, up);
 
-            this.spacePressed = true;
+                this.spacePressed = true;
+            }
         }
 
 
@@ -148,17 +152,19 @@ export class FirstPersonController {
     }
 
     pointermoveHandler(e) {
-        const dx = e.movementX;
-        const dy = e.movementY;
+        if(this.gameMode === false){
+            const dx = e.movementX;
+            const dy = e.movementY;
 
-        this.pitch -= dy * this.pointerSensitivity;
-        this.yaw   -= dx * this.pointerSensitivity;
+            this.pitch -= dy * this.pointerSensitivity;
+            this.yaw   -= dx * this.pointerSensitivity;
 
-        const twopi = Math.PI * 2;
-        const halfpi = Math.PI / 2;
+            const twopi = Math.PI * 2;
+            const halfpi = Math.PI / 2;
 
-        this.pitch = Math.min(Math.max(this.pitch, -halfpi), halfpi);
-        this.yaw = ((this.yaw % twopi) + twopi) % twopi;
+            this.pitch = Math.min(Math.max(this.pitch, -halfpi), halfpi);
+            this.yaw = ((this.yaw % twopi) + twopi) % twopi;
+        }
     }
 
     keydownHandler(e) {

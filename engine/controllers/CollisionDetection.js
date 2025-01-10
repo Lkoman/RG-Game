@@ -528,11 +528,11 @@ export class CollisionDetection {
     // Vsak frame translation, rotation modelov nastavimo na translation, rotation od njihovih rigidBody-jev
         // To omogoča, da Ammo kalkulira končno fiziko in da se pozna collision/gravity itd.  
 
-    updatePLayerPosition(coordinates, AmmoLib){
-        
+    updatePLayerPosition(coordinatesT,coordinateR, AmmoLib){
         const transform = new AmmoLib.btTransform();
         this.cameraRigidBody.getMotionState().getWorldTransform(transform);
-        transform.setOrigin(new AmmoLib.btVector3(coordinates[0], coordinates[1], coordinates[2]));
+        transform.setOrigin(new AmmoLib.btVector3(coordinatesT[0], coordinatesT[1], coordinatesT[2]));
+        transform.setRotation(new AmmoLib.btVector4(coordinateR[0], coordinateR[1], coordinateR[2], coordinateR[3]));
         this.cameraRigidBody.setWorldTransform(transform);
         AmmoLib.destroy(transform);
     }

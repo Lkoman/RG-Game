@@ -56,8 +56,10 @@ scene.addComponent(collisionDetection);
 // Set up the camera
 //
 const camera = scene.find(node => node.getComponentOfType(Camera));
+const firstPerosnController = new FirstPersonController(camera, canvas);
 camera.getComponentOfType(Transform).rotation = quat.fromEuler(quat.create(), 0, 70, 0);
-camera.addComponent(new FirstPersonController(camera, canvas));
+camera.addComponent(firstPerosnController);
+
 
 //
 // Add a light - sun
@@ -143,21 +145,6 @@ function resizeCanvas() {
 
 resizeCanvas();
 
-function drawText() {
-    ctx.clearRect(0, 0, textCanvas.width, textCanvas.height); // Clear previous text
-
-    if (collisionDetection.pickUpObject) {
-        ctx.fillText('Press E to pick up', textCanvas.width /2, textCanvas.height - 100);
-    }
-    else if (collisionDetection.teleport) {
-        ctx.fillText('Press E to teleport', textCanvas.width /2, textCanvas.height - 100);
-    }
-    else if (collisionDetection.playLevel1) {
-        ctx.fillText('Press E to play', textCanvas.width /2, textCanvas.height - 100);
-    }
-}
-
-
 const arrayOfX = Array(5);
 function onKeydown(event) {
     if ((event.key === 'E') || (event.key === 'e')) {
@@ -171,14 +158,24 @@ function onKeydown(event) {
        }
        else if(collisionDetection.playLevel1){
             console.log('Play level 1');
-            collisionDetection.setPlayerCamera(collisionDetection.cameraRigidBody, collisionDetection.camera, ammoLib, 0);
-            collisionDetection.updatePLayerPosition([-39.38089370727539, 12.5, -63.69701385498047], ammoLib);
+            firstPerosnController.gameMode = true;
+            collisionDetection.syncPlayerCameraTR(collisionDetection.cameraRigidBody, collisionDetection.camera, ammoLib, 0);
+            collisionDetection.updatePLayerPosition([-39.38089370727539, 12.5, -53], [0.5126658082008362, -0.4870048761367798, 0.4870048463344574, 0.512665867805481], ammoLib);
        }
 
     }
 }
 
+function escapeGame(event){
+    if((event.key === 'Escape') || (event.key === 'escape')){
+        firstPerosnController.gameMode = false;
+        collisionDetection.syncPlayerCameraTR(collisionDetection.cameraRigidBody, collisionDetection.camera, ammoLib, 1);
+        collisionDetection.updatePLayerPosition([-40.38089370727539, 14, -55],[0.5126658082008362, -0.4870048761367798, 0.4870048463344574, 0.512665867805481],  ammoLib);
+    }
+}
+
 document.addEventListener('keydown', onKeydown);
+document.addEventListener('keydown', escapeGame);
 
 
 new ResizeSystem({ canvas, resize }).start();
