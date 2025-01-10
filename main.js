@@ -135,6 +135,9 @@ function drawText() {
     else if (collisionDetection.playLevel1) {
         ctx.fillText('Press E to play', textCanvas.width /2, textCanvas.height - 100);
     }
+    else if(firstPerosnController.gameMode){
+        ctx.fillText('press E to exit Game mode', textCanvas.width /2, textCanvas.height - 100);
+    }
 }
 
 // To naredimo, da se text izpiše lepo in ne blurred
@@ -162,8 +165,7 @@ function onKeydown(event) {
     if ((event.key === 'E') || (event.key === 'e')) {
         console.log('E key pressed');
        if(collisionDetection.pickUpObject){
-            console.log('Picking up object');
-            
+            PickUpX();
        }
        else if(collisionDetection.teleport){
             console.log('Teleport');
@@ -172,13 +174,35 @@ function onKeydown(event) {
             console.log('Play level 1');
             firstPerosnController.gameMode = true;
             collisionDetection.syncPlayerCameraTR(collisionDetection.cameraRigidBody, collisionDetection.camera, ammoLib, 0);
-            collisionDetection.updatePLayerPosition([-39, 16, -53], [0.7071, 0, 0, 0], ammoLib);
+            collisionDetection.updatePLayerPosition([-39, 16, -53], [0.7071, 0, 1, 0], ammoLib);
        }
        else if(firstPerosnController.gameMode){
             firstPerosnController.gameMode = false;
             collisionDetection.syncPlayerCameraTR(collisionDetection.cameraRigidBody, collisionDetection.camera, ammoLib, 1);
             collisionDetection.updatePLayerPosition([-40.38089370727539, 14, -55],[0.5126658082008362, -0.4870048761367798, 0.4870048463344574, 0.512665867805481],  ammoLib);
         }
+    }
+}
+
+function PickUpX(){
+    const names = ['dy_X1_trigger', 'dy_X2_trigger', 'dy_X3_trigger', 'dy_X4_trigger', 'dy_X5_trigger'];
+    const x = scene.find(node => names.includes(node.name));
+    if(x){
+        console.log('X picked up');
+        const transform = x.getComponentOfType(Transform);
+        const position = transform.translation;
+        transform.translation = [0,0,0];
+        const rigidBody = collisionDetection.rigidBodyMap.get(x);
+        if (rigidBody) {
+            const physicsTransform = new Ammo.btTransform();
+            rigidBody.getMotionState().getWorldTransform(physicsTransform);
+            physicsTransform.setOrigin(new Ammo.btVector3(0, 0, 0));
+            rigidBody.setWorldTransform(physicsTransform);
+            rigidBody.getMotionState().setWorldTransform(physicsTransform);
+            Ammo.destroy(physicsTransform);
+            console.log("X is rigidBody")
+        }
+        collisionDetection.numPobranihX++;
     }
 }
 

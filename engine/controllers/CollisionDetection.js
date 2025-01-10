@@ -532,16 +532,16 @@ export class CollisionDetection {
     // Vsak frame translation, rotation modelov nastavimo na translation, rotation od njihovih rigidBody-jev
         // To omogoča, da Ammo kalkulira končno fiziko in da se pozna collision/gravity itd.  
 
-    updatePLayerPosition(coordinatesT,coordinateR, AmmoLib){
-        const transform = new AmmoLib.btTransform();
-        this.cameraRigidBody.getMotionState().getWorldTransform(transform);
-        transform.setOrigin(new AmmoLib.btVector3(coordinatesT[0], coordinatesT[1], coordinatesT[2]));
-        this.camera.getComponentOfType(Transform).rotation = quat.fromEuler(quat.create(), 0, 70, 0);
-        //this.camera.rotation = quat.fromValues(coordinateR[0], coordinateR[1], coordinateR[2], coordinateR[3]);
-        //transform.setRotation(new AmmoLib.btQuaternion(coordinateR[0], coordinateR[1], coordinateR[2], coordinateR[3]));
-        this.cameraRigidBody.setWorldTransform(transform);
-        AmmoLib.destroy(transform);
-    }
+        updatePLayerPosition(coordinatesT,coordinateR, AmmoLib){
+            const transform = new AmmoLib.btTransform();
+            this.cameraRigidBody.getMotionState().getWorldTransform(transform);
+            transform.setOrigin(new AmmoLib.btVector3(coordinatesT[0], coordinatesT[1], coordinatesT[2]));
+            this.camera.getComponentOfType(Transform).rotation = quat.fromEuler(quat.create(), 0, 70, 0);
+            //this.camera.rotation = quat.fromValues(coordinateR[0], coordinateR[1], coordinateR[2], coordinateR[3]);
+            //transform.setRotation(new AmmoLib.btQuaternion(coordinateR[0], coordinateR[1], coordinateR[2], coordinateR[3]));
+            this.cameraRigidBody.setWorldTransform(transform);
+            AmmoLib.destroy(transform);
+        }
       
 
     syncObjects(AmmoLib) {
@@ -597,6 +597,16 @@ export class CollisionDetection {
     //////////////////////////////////
     // Podobno kot addAllObjects, samo za playerja/kamero
     // Naredimo box collision shape okoli kamere, dodamo v physics world
+    updatePLayerPosition(coordinatesT,coordinateR, AmmoLib){
+        const transform = new AmmoLib.btTransform();
+        this.cameraRigidBody.getMotionState().getWorldTransform(transform);
+        transform.setOrigin(new AmmoLib.btVector3(coordinatesT[0], coordinatesT[1], coordinatesT[2]));
+        transform.setRotation(new AmmoLib.btQuaternion(coordinateR[0], coordinateR[1], coordinateR[2], coordinateR[3]));
+        this.cameraRigidBody.setWorldTransform(transform);
+        this.cameraRigidBody.getMotionState().getWorldTransform(transform);
+        AmmoLib.destroy(transform);
+    }
+      
     addPlayerCameraRigidBody(physicsWorld, AmmoLib) {
         // Create a box collision shape
         const halfExtents = new AmmoLib.btVector3(0.3, 1, 0.3); // half dimensions of the box
