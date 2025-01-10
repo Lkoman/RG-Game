@@ -532,8 +532,9 @@ export class CollisionDetection {
         const transform = new AmmoLib.btTransform();
         this.cameraRigidBody.getMotionState().getWorldTransform(transform);
         transform.setOrigin(new AmmoLib.btVector3(coordinatesT[0], coordinatesT[1], coordinatesT[2]));
-        transform.setRotation(new AmmoLib.btVector4(coordinateR[0], coordinateR[1], coordinateR[2], coordinateR[3]));
+        transform.setRotation(new AmmoLib.btQuaternion(coordinateR[0], coordinateR[1], coordinateR[2], coordinateR[3]));
         this.cameraRigidBody.setWorldTransform(transform);
+        this.cameraRigidBody.getMotionState().getWorldTransform(transform);
         AmmoLib.destroy(transform);
     }
       
