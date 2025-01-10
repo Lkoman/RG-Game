@@ -613,6 +613,16 @@ export class CollisionDetection {
             
         AmmoLib.destroy(transform);
     }
+  
+
+    updatePLayerPosition(coordinates){
+        const transform = new AmmoLib.btTransform();
+        this.cameraRigidBody.getMotionState().getWorldTransform(trnasform);
+        transform.setOrigin(new AmmoLib.btVector3(coordinates[0], coordinates[1], coordinates[2]));
+        this.cameraRigidBody.setWorldTransform(transform);
+        AmmoLib.destroy(transform);
+    }
+      
 
     syncObjects(AmmoLib) {
         this.modelsData.forEach(model => {

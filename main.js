@@ -130,5 +130,29 @@ function drawText() {
 }
 
 
+const arrayOfX = Array(5);
+function onKeydown(event) {
+    if (event.key === 'E') {
+        console.log('E key pressed');
+        ctx.fillText('E key pressed', textCanvas.width /2, textCanvas.height - 50);
+       if(collisionDetection.pickUpObject){
+            console.log('Picking up object');
+            
+       }
+       else if(collisionDetection.teleport){
+            console.log('Teleport');
+       }
+       else if(collisionDetection.playLevel1){
+            console.log('Play level 1');
+            collisionDetection.setPlayerCamera(collisionDetection.cameraRigidBody, collisionDetection.camera, AmmoLib, 0);
+            collisionDetection.updatePLayerPosition([-39.38089370727539, 12.5, -63.69701385498047]);
+       }
+
+    }
+}
+
+document.addEventListener('keydown', onKeydown);
+
+
 new ResizeSystem({ canvas, resize }).start();
 new UpdateSystem({ update, render }).start();
