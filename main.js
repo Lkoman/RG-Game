@@ -10,6 +10,7 @@ import { UpdateSystem } from 'engine/systems/UpdateSystem.js';
 import { UnlitRenderer } from 'engine/renderers/UnlitRenderer.js';
 import { FirstPersonController } from './engine/controllers/FirstPersonController.js';
 import { CollisionDetection } from './engine/controllers/CollisionDetection.js';
+import { AmmoLibExport as ammoLib } from './engine/controllers/CollisionDetection.js';
 
 ////////////////
 // VARIABLES //
@@ -132,9 +133,8 @@ function drawText() {
 
 const arrayOfX = Array(5);
 function onKeydown(event) {
-    if (event.key === 'E') {
+    if ((event.key === 'E') || (event.key === 'e')) {
         console.log('E key pressed');
-        ctx.fillText('E key pressed', textCanvas.width /2, textCanvas.height - 50);
        if(collisionDetection.pickUpObject){
             console.log('Picking up object');
             
@@ -144,8 +144,8 @@ function onKeydown(event) {
        }
        else if(collisionDetection.playLevel1){
             console.log('Play level 1');
-            collisionDetection.setPlayerCamera(collisionDetection.cameraRigidBody, collisionDetection.camera, AmmoLib, 0);
-            collisionDetection.updatePLayerPosition([-39.38089370727539, 12.5, -63.69701385498047]);
+            collisionDetection.setPlayerCamera(collisionDetection.cameraRigidBody, collisionDetection.camera, ammoLib, 0);
+            collisionDetection.updatePLayerPosition([-39.38089370727539, 12.5, -63.69701385498047], ammoLib);
        }
 
     }

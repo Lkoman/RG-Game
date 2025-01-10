@@ -615,9 +615,10 @@ export class CollisionDetection {
     }
   
 
-    updatePLayerPosition(coordinates){
+    updatePLayerPosition(coordinates, AmmoLib){
+        
         const transform = new AmmoLib.btTransform();
-        this.cameraRigidBody.getMotionState().getWorldTransform(trnasform);
+        this.cameraRigidBody.getMotionState().getWorldTransform(transform);
         transform.setOrigin(new AmmoLib.btVector3(coordinates[0], coordinates[1], coordinates[2]));
         this.cameraRigidBody.setWorldTransform(transform);
         AmmoLib.destroy(transform);
@@ -696,8 +697,8 @@ export class CollisionDetection {
     }
 
     checkForTriggers(body) {
-        console.log(body.kB);
-        console.log(this.triggerRigidBodyMap.get(body.kB));
+        //console.log(body.kB);
+        //console.log(this.triggerRigidBodyMap.get(body.kB));
 
         var triggeredObject = this.triggerRigidBodyMap.get(body.kB);
 
