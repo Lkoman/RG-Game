@@ -23,33 +23,45 @@ const maxSubSteps = 10; // če zalagga
 // SCENE SETUP //
 /////////////////
 
-const canvas = document.getElementById('webgpuCanvas');
-const textCanvas = document.getElementById('textCanvas');
+// 
+// Set up text canvases
+//
+const canvas = document.getElementById('webgpuCanvas'); // WebGPU canvas za izris igre
+const textCanvas = document.getElementById('textCanvas'); // Text canvas za izpis texta nad igro
 
+// Text canvas settings
 const ctx = textCanvas.getContext('2d');
-// Text settings
 ctx.font = '15px Arial';
 ctx.textAlign = 'center';
 ctx.fillStyle = 'black';
 
+// WebGPU canvas settings
 const renderer = new UnlitRenderer(canvas);
 await renderer.initialize();
 
+//
 // Load the world model
+//
 const worldLoader = new GLTFLoader();
 await worldLoader.load(new URL('./models/world-fun/world.gltf', import.meta.url));
 const scene = worldLoader.loadScene(worldLoader.defaultScene); // Add the model to the scene
 
+//
 // Set up collision detection
+//
 const collisionDetection = new CollisionDetection(scene);
 scene.addComponent(collisionDetection);
 
+//
 // Set up the camera
+//
 const camera = scene.find(node => node.getComponentOfType(Camera));
 camera.getComponentOfType(Transform).rotation = quat.fromEuler(quat.create(), 0, 70, 0);
 camera.addComponent(new FirstPersonController(camera, canvas));
 
-// Add a light
+//
+// Add a light - sun
+//
 const light = new Node();
 scene.addChild(light);
 light.addComponent(new Transform({
@@ -57,11 +69,10 @@ light.addComponent(new Transform({
 }));
 const lightTransform = light.getComponentOfType(Transform);
 light.addComponent(new Light({
-    type: 'directional', // Sunlight type
+    type: 'directional', // Sun
     color: [1, 1, 1],
     intensity: 100.0,
 }));
-
 light.addComponent({
     update(t, dt) {
         lightTransform.translation = [0, 1000, 0];
@@ -90,6 +101,7 @@ function render() {
     // Render the scene
     renderer.render(scene, camera);
 
+    // Draw text on top of the scene, če je potrebno - podatke dobimo iz collisionDetection
     drawText();
 }
 
@@ -97,6 +109,21 @@ function resize({ displaySize: { width, height }}) {
     camera.getComponentOfType(Camera).aspect = width / height;
 }
 
+function drawText() {
+    ctx.clearRect(0, 0, textCanvas.width, textCanvas.height); // Clear previous text
+
+    if (collisionDetection.pickUpObject) {
+        ctx.fillText('Press E to pick up', textCanvas.width /2, textCanvas.height - 100);
+    }
+    else if (collisionDetection.teleport) {
+        ctx.fillText('Press E to teleport', textCanvas.width /2, textCanvas.height - 100);
+    }
+    else if (collisionDetection.playLevel1) {
+        ctx.fillText('Press E to play', textCanvas.width /2, textCanvas.height - 100);
+    }
+}
+
+// To naredimo, da se text izpiše lepo in ne blurred
 function resizeCanvas() {
     const width = window.innerWidth;
     const height = window.innerHeight;
