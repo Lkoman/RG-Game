@@ -79,12 +79,10 @@
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
     transition: transform 0.2s ease;
 }
-<<<<<<< HEAD
 
 .custom-pointer {
     cursor: none;
 }
-=======
 #instructionCanvas {
     position: absolute;
     background-image: url('models/bacground/Instructions.png');
@@ -148,4 +146,3 @@
     color:#19492e;
     font-family: 'Press Start 2P', fantasy; /* Retro font */
 }
->>>>>>> ddccc2e02758a0f96815eabeee35b1928ffb53bf
