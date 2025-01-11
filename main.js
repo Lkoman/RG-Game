@@ -1,18 +1,19 @@
-import { quat, mat4 } from 'glm';
-
+import { quat, mat4, vec3 } from 'glm';
 import { Camera, Node, Light, Transform } from 'engine/core.js';
 
 import { GLTFLoader } from 'engine/loaders/GLTFLoader.js';
+import { ImageLoader } from 'engine/loaders/ImageLoader.js';
 
 import { ResizeSystem } from 'engine/systems/ResizeSystem.js';
 import { UpdateSystem } from 'engine/systems/UpdateSystem.js';
 
 import { UnlitRenderer } from 'engine/renderers/UnlitRenderer.js';
+
 import { FirstPersonController } from './engine/controllers/FirstPersonController.js';
 import { CollisionDetection } from './engine/controllers/CollisionDetection.js';
+import { LevelController } from './engine/controllers/LevelController.js';
 
 import { AmmoLibExport as ammoLib } from './engine/controllers/CollisionDetection.js';
-import { ImageLoader } from 'engine/loaders/ImageLoader.js';
 
 ////////////////
 // VARIABLES //
@@ -22,6 +23,8 @@ const timeStep = 1 / 60; // 60 FPS
 const maxSubSteps = 10; // če zalagga
 let onKeyDownBool = false;
 let saveEvent;
+let onClickSave = false; // to shrani, če je bila miška kliknjena, ko je bil gameMode true, da lahko uporabimo v CollisionDetection.js, da ugotovimo na kateri board je kliknil player
+let canPlay = false; // če je igralec pobral vseh 5 X-ov lahko igra, drugače ne
 
 // Pointer
 let pointerTexture;
@@ -33,7 +36,7 @@ let pointerTexture;
 // load the image for the cursor
 async function loadPointerTexture() {
     const imageLoader = new ImageLoader();
-    pointerTexture = await imageLoader.load(new URL('./models/world-fun/Textures/cursor1.png', import.meta.url));
+    pointerTexture = await imageLoader.load(new URL('./models/world-fun/Images/cursor.png', import.meta.url));
 }
 
 await loadPointerTexture();
@@ -68,12 +71,10 @@ document.addEventListener('DOMContentLoaded', () => {
 const canvas = document.getElementById('webgpuCanvas'); // WebGPU canvas za izris igre
 const textCanvas = document.getElementById('textCanvas'); // Text canvas za izpis texta nad igro
 
-
 // Text canvas settings
 const ctx = textCanvas.getContext('2d');
 ctx.textAlign = 'center';
 ctx.fillStyle = 'black';
-
 
 // WebGPU canvas settings
 const renderer = new UnlitRenderer(canvas);
@@ -99,6 +100,8 @@ const camera = scene.find(node => node.getComponentOfType(Camera));
 const firstPerosnController = new FirstPersonController(camera, canvas);
 camera.getComponentOfType(Transform).rotation = quat.fromEuler(quat.create(), 0, 0, 0);
 camera.addComponent(firstPerosnController);
+
+const levelController = new LevelController();
 
 //
 // Add a light - sun
@@ -136,6 +139,10 @@ function update(t, dt) {
             onKeyDownBool = false;
         }
         collisionDetection.setPositions(dt);
+        if (firstPerosnController.gameMode) {
+            collisionDetection.checkBoardCollisionsLevel1(onClickSave);
+            onClickSave = false;
+        }
     }
 
     // Update all components
@@ -144,6 +151,12 @@ function update(t, dt) {
             component.update?.(t, dt);
         }
     });
+
+    if (collisionDetection.numPobranihX === 5) {
+        canPlay = true;
+    }
+
+    resizeCanvas();
 }
 
 function render() {
@@ -174,14 +187,19 @@ function drawText() {
         ctx.fillText('Press E to teleport', textCanvas.width /2, textCanvas.height - 100);
     }
     else if (collisionDetection.playLevel1) {
-        ctx.fillText('Press E to play', textCanvas.width /2, textCanvas.height - 100);
+        if (canPlay) {
+            ctx.fillText('Press E to play', textCanvas.width /2, textCanvas.height - 100);
+        } else {
+            let seZaPobrat = "You have to collect " + (5 - collisionDetection.numPobranihX) + " more Xs to play";
+            ctx.fillText(seZaPobrat, textCanvas.width /2, textCanvas.height - 100);
+        }
     }
     else if(firstPerosnController.gameMode){
         ctx.fillText('press E to exit Game mode', textCanvas.width /2, textCanvas.height - 100);
 
         // If gameMode is active, draw the cursor at the mouse coordinates
         if (pointerTexture) {
-            ctx.drawImage(pointerTexture, firstPerosnController.cursorX - pointerTexture.width / 2, firstPerosnController.cursorY - pointerTexture.height / 2);
+            ctx.drawImage(pointerTexture, canvas.width / 2, canvas.height / 2);
         }
     }
 }
@@ -199,6 +217,8 @@ function resizeCanvas() {
     webgpuCanvas.width = width;
     webgpuCanvas.height = height;
 
+    //console.log('Canvas resized to:', width, height);
+
     // Adjust font size dynamically based on canvas height
     ctx.font = `${Math.round(height / 30)}px Arial`; // Font size is 1/30th of canvas height
     ctx.textAlign = 'center';
@@ -212,38 +232,39 @@ function onKeydown(event) {
         console.log('E key pressed');
        if(collisionDetection.pickUpObject){
             const x = scene.find(node => node.name === collisionDetection.pickedUpObjectName);
-
-            console.log(x.name);
             
             // Now the node's transformation matrix is updated, so reapply it
-            //x.getComponentOfType(Transform).matrix = matrix;
-            collisionDetection.updateXPosition(x.name, [0,0,0], ammoLib);
+            collisionDetection.updateXPosition(x.name, [0,20,0], ammoLib);
 
        }
        else if(collisionDetection.teleport){
             console.log('Teleport');
        }
-       else if(collisionDetection.playLevel1){
-
-            console.log('Play level 1');
-
+       else if(collisionDetection.playLevel1 /* && canPlay*/){
             // Če je gameMode true, dodamo cursor na mouse pointer
             firstPerosnController.gameMode = true;
-            canvas.classList.add('custom-pointer');
-
-            // Nastavimo pozicijo, ki je set za gameMode
-            collisionDetection.updatePlayerPosition([-39.35, 16, -54], [2, 0, 0], ammoLib);
+            collisionDetection.updatePlayerPosition([-39.35, 16, -54], [0, 0, 0], ammoLib);
        }
        else if(firstPerosnController.gameMode){
             // Če je gameMode false, odstranimo cursor iz mouse pointerja
             firstPerosnController.gameMode = false;
-            canvas.classList.remove('custom-pointer');
-
             // Vn iz gameMode-a
             collisionDetection.updatePlayerPosition([-40.38089370727539, 14, -55],[0.5126658082008362, -0.4870048761367798, 0.4870048463344574, 0.512665867805481],  ammoLib);
         }
     }
 }
+
+let debounceTimer;
+document.addEventListener('click', function () {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+        if (firstPerosnController.gameMode) {
+            onClickSave = true;
+        } else {
+            onClickSave = false;
+        }
+    }, 200); // Adjust delay as needed (200ms is common)
+});
 
 function setOnKeyDown(event) {
     onKeyDownBool = true;

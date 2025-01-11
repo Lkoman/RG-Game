@@ -1,8 +1,9 @@
-import { quat, vec3, mat4 } from 'glm';
+import { quat, vec3, vec4, mat4 } from 'glm';
 
 import { Transform } from '../core/Transform.js';
 
 import { camRigidBody, AmmoLibExport as AmmoLib } from './CollisionDetection.js';
+import { getProjectionMatrix, getGlobalViewMatrix } from '../core/SceneUtils.js';
 
 export let maxSpeed = 5;
 
@@ -19,6 +20,7 @@ export class FirstPersonController {
         pointerSensitivity = 0.001,
         cameraRigidBody = null,
         gameMode = false,
+        switchToGameMode = false,
         cursorX = 0,
         cursorY = 0
     } = {}) {
@@ -109,8 +111,6 @@ export class FirstPersonController {
             }
         }
 
-
-
         // Normalize direction, then multiply by maxSpeed
         const len = vec3.length(acc);
         if (len > 0) {
@@ -147,7 +147,7 @@ export class FirstPersonController {
 
         // handle camera orientation by directly setting node’s rotation
         const transform = this.node.getComponentOfType(Transform);
-        if (transform && !this.gameMode) {
+        if (transform) {
             // We'll let Bullet handle position, but we'll do rotation ourselves
             const rotation = quat.create();
             quat.rotateY(rotation, rotation, this.yaw);
@@ -157,7 +157,7 @@ export class FirstPersonController {
     }
 
     pointermoveHandler(e) {
-        if(this.gameMode === false){
+        //if(this.gameMode === false){
             const dx = e.movementX;
             const dy = e.movementY;
 
@@ -169,14 +169,16 @@ export class FirstPersonController {
 
             this.pitch = Math.min(Math.max(this.pitch, -halfpi), halfpi);
             this.yaw = ((this.yaw % twopi) + twopi) % twopi;
-        } else if (this.gameMode) {
+        /*} 
+        // Za izpisovanje cursorja na ekran pri gameMode
+        else if (this.gameMode) {
             this.cursorX += e.movementX;
             this.cursorY += e.movementY;
     
             // Clamp cursor position to stay within canvas bounds (optional)
             this.cursorX = Math.max(0, Math.min(this.cursorX, window.innerWidth));
             this.cursorY = Math.max(0, Math.min(this.cursorY, window.innerHeight));
-        }
+        }*/
     }
 
     keydownHandler(e) {
