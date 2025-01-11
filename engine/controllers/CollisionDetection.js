@@ -45,6 +45,9 @@ export class CollisionDetection {
         this.scene = scene; // scene from main.js
         this.camera = scene.find(node => node.getComponentOfType(Camera)); // camera from main.js
 
+        // Physics world
+        this.physicsWorld = null; // function that advances the physics world
+
         // TABELE ZA MODELE
         this.staticModelsData = []; // tabela za shranjevanje podatkov o staticnih modelih
         this.modelsData = []; // tabela za shranjevanje podatkov o dynamicnih modelih
@@ -212,6 +215,8 @@ export class CollisionDetection {
             const physicsWorld = new AmmoLib.btDiscreteDynamicsWorld(dispatcher, broadphase, solver, collisionConfiguration); // integrates all components and creates the physics worls, manages physics simulation
             physicsWorld.setGravity(new AmmoLib.btVector3(0, -5.81, 0));
 
+            this.physicsWorld = physicsWorld;
+
             //
             // Dodamo modele v physics world - posebej static in dynamic
             //
@@ -255,6 +260,9 @@ export class CollisionDetection {
             // Check for trigger collisions (collision detection and response naredi Ammo sam)
             this.checkCollisions(physicsWorld, AmmoLib);
         };
+        this.checkBoardCollisionsLevel1 = (click) => {
+            this.checkPlayingBoardIntersection(AmmoLib, physicsWorld, click);
+        }
     }
 
     ///////////////////////////////////////////////////////////////////////
@@ -287,6 +295,10 @@ export class CollisionDetection {
             // Apple je lahek da ga lahko brcamo okoli 
             else if (name.startsWith("dy_apple")) {
                 mass = 0.3;
+            }
+            // Xom dodamo used, da ugotovimo če so bili že used na boardu med igro
+            else if (name.startsWith("dy_X")) {
+                model.used = false;
             }
             // Ostali modeli, ki nimajo teh posebnosti, bodo imeli mesh collision box, default mass (1 ali 0)
 
@@ -339,11 +351,11 @@ export class CollisionDetection {
                 //
                 // Če je trigger, bo imel vedno sphere, če aabb -> aabb, če sphere -> sphere, drugače pa mesh
                 if (trigger) {
-                    shape = this.aabb_sphere(AmmoLib, vertices, "sphere", 1, 3);
+                    shape = this.aabb_sphere(AmmoLib, vertices, "sphere", 1, 3, name);
                 } else if (aabb) {
-                    shape = this.aabb_sphere(AmmoLib, vertices, "aabb", 0, 0);
+                    shape = this.aabb_sphere(AmmoLib, vertices, "aabb", 0, 0, name);
                 } else if (sphere) {
-                    shape = this.aabb_sphere(AmmoLib, vertices, "sphere", 0, 0);
+                    shape = this.aabb_sphere(AmmoLib, vertices, "sphere", 0, 0, name);
                 }
                 // Če nima nobenega od teh, je mesh collision
                 else {
@@ -428,7 +440,7 @@ export class CollisionDetection {
     // SPHERE ALI AABB ZA RIGID BODY
     //
     // za katerekoli modele
-    aabb_sphere(AmmoLib, vertices, type, trigger, triggerMargin) {
+    aabb_sphere(AmmoLib, vertices, type, trigger, triggerMargin, name) {
         let min = [Infinity, Infinity, Infinity];
         let max = [-Infinity, -Infinity, -Infinity];
 
@@ -442,6 +454,14 @@ export class CollisionDetection {
             max[0] = Math.max(max[0], vertexPos[0]);
             max[1] = Math.max(max[1], vertexPos[1]);
             max[2] = Math.max(max[2], vertexPos[2]);
+        }
+
+        // Če je model a board kvadratek, mu dodamo boolean zaseden, da vidimo ali je pri igranju igre že zaseden z X ali O, tako da ne gresta dva X ali O-ja na isto mesto
+        if (name.startsWith("aabb_board")) {
+            const model = this.staticModelsData.find(node => node.name === name);
+            if (model) {
+                model.zaseden = false;
+            }
         }
 
         const halfExtents = [
@@ -526,53 +546,11 @@ export class CollisionDetection {
         return shape;
     }
 
-    // Set player position to cameraRigidBody and rotation to the camera node za GAMEMODE
-    updatePlayerPosition(coordinatesT,coordinateR, AmmoLib) {
-        // get the transform of the camera rigid body
-        const transform = new AmmoLib.btTransform();
-        this.cameraRigidBody.getMotionState().getWorldTransform(transform);
-
-        // set the new position to the camera rigid body
-        transform.setOrigin(new AmmoLib.btVector3(coordinatesT[0], coordinatesT[1], coordinatesT[2]));
-        this.cameraRigidBody.setWorldTransform(transform);
-
-        // set the new rotation to the camera node
-        this.camera.getComponentOfType(Transform).rotation = quat.fromEuler(quat.create(), coordinateR[0], coordinateR[1], coordinateR[2]);;
-
-        AmmoLib.destroy(transform);
-    }
-    
-    // Set the position of the object to the coordinatesT
-    updateXPosition(name, coordinatesT, AmmoLib) {
-        // get model from modelsData
-        const model = this.modelsData.find(m => m.name === name);
-
-        if (!model.rigidBody) {
-            console.warn(`Rigid body not found for X: ${model.name}`);
-            return;
-        }
-
-        // get the transform of the rigid body
-        const transform = new AmmoLib.btTransform();
-        model.rigidBody.getMotionState().getWorldTransform(transform);
-
-        // set the new position to the rigid body
-        transform.setOrigin(new AmmoLib.btVector3(coordinatesT[0], coordinatesT[1], coordinatesT[2]));
-        model.rigidBody.setWorldTransform(transform);
-        model.rigidBody.getMotionState().setWorldTransform(transform);
-
-        this.numPobranihX++;
-
-        AmmoLib.destroy(transform);
-
-        //x.getComponentOfType(Transform).translation = [coordinatesT[0], coordinatesT[1], coordinatesT[2]];
-    }
-
     //
     // Sync all objects with their respective rigid bodies
     //
     // Vsak frame translation, rotation modelov nastavimo na translation, rotation od njihovih rigidBody-jev
-        // To omogoča, da Ammo kalkulira končno fiziko in da se pozna collision/gravity itd.
+    // To omogoča, da Ammo kalkulira končno fiziko in da se pozna collision/gravity itd.
     syncObjects(AmmoLib) {
         this.modelsData.forEach(model => {
             // odstrani rigidBody če pade dol
@@ -621,6 +599,64 @@ export class CollisionDetection {
         });
     }
 
+    // Set player position to cameraRigidBody and rotation to the camera node za GAMEMODE
+    updatePlayerPosition(coordinatesT, coordinateR, AmmoLib) {
+        // get the transform of the camera rigid body
+        const transform = new AmmoLib.btTransform();
+        this.cameraRigidBody.getMotionState().getWorldTransform(transform);
+
+        // set the new position to the camera rigid body
+        transform.setOrigin(new AmmoLib.btVector3(coordinatesT[0], coordinatesT[1], coordinatesT[2]));
+        this.cameraRigidBody.setWorldTransform(transform);
+
+        // set the new rotation to the camera node
+        if (coordinateR != null) {
+            this.camera.getComponentOfType(Transform).rotation = quat.fromEuler(quat.create(), coordinateR[0], coordinateR[1], coordinateR[2]);;
+        }
+
+        AmmoLib.destroy(transform);
+    }
+    
+    // Set the position of the object to the coordinatesT
+    updateXPosition(name, coordinatesT, AmmoLib) {
+        // get model from modelsData
+        const model = this.modelsData.find(m => m.name === name);
+
+        if (!model.rigidBody) {
+            console.warn(`Rigid body not found for X: ${model.name}`);
+            return;
+        }
+
+        // get the transform of the rigid body
+        const transform = new AmmoLib.btTransform();
+        model.rigidBody.getMotionState().getWorldTransform(transform);
+
+        // set the new position to the rigid body
+        transform.setOrigin(new AmmoLib.btVector3(coordinatesT[0], coordinatesT[1], coordinatesT[2]));
+
+        // set the rotation to 90, 0, 45
+        transform.setRotation(new AmmoLib.btQuaternion(0, 0, 0.383, 0.924));
+
+        model.rigidBody.setWorldTransform(transform);
+        model.rigidBody.getMotionState().setWorldTransform(transform);
+
+        this.numPobranihX++;
+
+        //this.makeRigidBodyStatic(model.rigidBody, AmmoLib);
+
+        // Remove the trigger rigid body from the map, tako da se ne bo naprej gledal za collision
+        let triggerBody = this.modelsData.find(m => m.name === name).triggerRigidBody;
+
+        if (this.triggerRigidBodyMap.has(triggerBody.kB)) {
+            this.triggerRigidBodyMap.delete(triggerBody.kB);
+        } else {
+            console.warn(`Key ${triggerBody.kB} not found in triggerRigidBodyMap.`);
+        }
+
+
+        AmmoLib.destroy(transform);
+    }
+
     ///////////////////////////////////
     // ADD PLAYER/CAMERA RIGID BODY //
     //////////////////////////////////
@@ -634,7 +670,7 @@ export class CollisionDetection {
         // Create the rigid body
         const transform = new AmmoLib.btTransform();
         transform.setIdentity();
-        transform.setOrigin(new AmmoLib.btVector3(50, 20, 50));
+        transform.setOrigin(new AmmoLib.btVector3(-50, 20, -60));
 
         const motionState = new AmmoLib.btDefaultMotionState(transform);
     
@@ -697,10 +733,10 @@ export class CollisionDetection {
         }
 
         // IZPIS CAMERA POSITION
-        //console.log("Camera trans:", cameraTransform.translation, cameraTransform.rotation);
+        //console.log("Camera trans:", cameraTransform.translation[0], cameraTransform.translation[1], cameraTransform.translation[2]);
 
         // IZPIS CAMERA RIGID BODY POSITION
-        //console.log("Camera rigid:", origin.x(), origin.y(), origin.z(), " , ", rotation.x(), rotation.y(), rotation.z(), rotation.w());
+        //console.log("Camera rigid:", origin.x(), origin.y(), origin.z());
             
         AmmoLib.destroy(transform);
     }
@@ -758,6 +794,68 @@ export class CollisionDetection {
                 this.playLevel1 = false;
             }
         }
+    }
+
+    // Check if the cameras ray is intersecting with the playingBoards board00, board01, board22,...
+    checkPlayingBoardIntersection(AmmoLib, physicsWorld, click) {
+        const cameraTransform = this.camera.getComponentOfType(Transform);
+        const origin = cameraTransform.translation;
+        const rotationQuat = cameraTransform.rotation;
+
+        // get forward vector in world space
+        const localForward = vec3.fromValues(0, 0, -1);
+        const worldForward = vec3.transformQuat(vec3.create(), localForward, rotationQuat);
+
+        vec3.normalize(worldForward, worldForward);
+
+        // build the from and to vectors from the ray
+        const RAY_DISTANCE = 500.0;
+
+        const from = new AmmoLib.btVector3(origin[0], origin[1], origin[2]);
+        const to = new AmmoLib.btVector3(
+            origin[0] + worldForward[0] * RAY_DISTANCE,
+            origin[1] + worldForward[1] * RAY_DISTANCE,
+            origin[2] + worldForward[2] * RAY_DISTANCE
+        );
+
+        // perform the rayTest from Ammo physics world
+        const rayCallback = new AmmoLib.AllHitsRayResultCallback(from, to);
+        // do the rayTest
+        physicsWorld.rayTest(from, to, rayCallback);
+
+        // pogledamo če je kej zadeu
+        if (rayCallback.hasHit()) {
+            const collisionObjects = rayCallback.m_collisionObjects;
+            for (let i = 0; i < collisionObjects.size(); i++) {
+                const collisionObject = collisionObjects.at(i);
+                const body = AmmoLib.castObject(collisionObject, AmmoLib.btRigidBody);
+                const rbInfo = this.rigidBodyMap.get(body);
+                if (rbInfo?.name.startsWith("aabb_board")) {
+                    // get the rbInfo origin
+                    let rbOrigin = body.getWorldTransform().getOrigin();
+                    let boardKvadratek = this.staticModelsData.find(node => node.name === rbInfo.name);
+
+                    //console.log(boardKvadratek);
+                    if(boardKvadratek.zaseden == false && click) {
+                        const nextX = this.modelsData.find(node => node.name.startsWith("dy_X") && !node.used);
+                        if (nextX) {
+                            //console.log(nextX);
+                            click = false;
+                            nextX.used = true;
+                            this.updateXPosition(nextX.name, [rbOrigin.x(), rbOrigin.y(), rbOrigin.z() + 0.1], AmmoLib);
+                            boardKvadratek.zaseden = true;
+                            return;
+                        } else {
+                            console.log("All X's used");
+                        }
+                    }
+                }
+            }
+        }
+        
+        AmmoLib.destroy(rayCallback);
+        AmmoLib.destroy(from);
+        AmmoLib.destroy(to);
     }
 
     delay(ms) {
