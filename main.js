@@ -21,19 +21,24 @@ const timeStep = 1 / 60; // 60 FPS
 const maxSubSteps = 10; // če zalagga
 let onKeyDownBool = false;
 let saveEvent;
+var victory = false;
+var defeat = false;
 
 /////////////////
 // FRONT PAGE ///
 /////////////////
+
 document.addEventListener('DOMContentLoaded', () => {
     const startButton = document.getElementById('start-button');
     const frontPage = document.getElementById('front-page');
     const instructions = document.getElementById('how-to-play-button');
     const instructionCanvas = document.getElementById('instructionCanvas');
+    const youWinCanvas = document.getElementById('you-won-canvas');
     
     webgpuCanvas.style.display = 'none';
     textCanvas.style.display = 'none';
     instructionCanvas.style.display = 'none';
+    youWinCanvas.style.display = 'none';
     
 
 
@@ -42,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
         frontPage.style.display = 'none';
         webgpuCanvas.style.display = 'block';
         textCanvas.style.display = 'block';
-
+        
         // Initialize and start the game
         render();
     });
@@ -57,7 +62,10 @@ document.addEventListener('DOMContentLoaded', () => {
         instructionCanvas.style.display = 'none';
         frontPage.style.display = 'block';
     });
+
+
 });
+
 /////////////////
 // SCENE SETUP //
 /////////////////
