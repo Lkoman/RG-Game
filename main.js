@@ -34,12 +34,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const instructions = document.getElementById('how-to-play-button');
     const instructionCanvas = document.getElementById('instructionCanvas');
     const youWinCanvas = document.getElementById('you-won-canvas');
+    const gameOverCanvas = document.getElementById('game-over-canvas');
     
-    webgpuCanvas.style.display = 'none';
+    canvas.style.display = 'none';
     textCanvas.style.display = 'none';
     instructionCanvas.style.display = 'none';
     youWinCanvas.style.display = 'none';
-    
+    gameOverCanvas.style.display = 'none';    
 
 
     startButton.addEventListener('click', () => {

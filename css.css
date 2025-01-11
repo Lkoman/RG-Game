@@ -111,10 +111,34 @@
 #play-again-button {
     position: absolute;
     top: 50%;
-    left: 35%;
+    left: 39%;
     width: 400px;
     height: 100px;
     background-color: #19492e; 
     color:white;
     font-size: 2rem;
+}
+
+#game-over-canvas{
+    position: absolute;
+    top: 0;
+    height: 100%;
+    width: 100%;
+    background-position: center;
+    background-size: cover;
+    background-color: #2e8b57;
+    text-align: center;
+}
+.game-over-text {
+    position: absolute;
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 6rem; /* Size of the title */
+    letter-spacing: 4px;
+    text-shadow: 4px 4px 10px rgb(255, 254, 254);
+    margin: 0;
+    padding: 20px;
+    color:#19492e;
+    font-family: 'Press Start 2P', fantasy; /* Retro font */
 }
