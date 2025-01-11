@@ -122,8 +122,7 @@
     color:white;
     font-size: 2rem;
 }
-
-#game-over-canvas{
+#game-over-canvas {
     position: absolute;
     top: 0;
     height: 100%;

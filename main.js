@@ -37,13 +37,6 @@ let pointerTexture;
 // POINTER //
 /////////////
 
-// load the image for the cursor
-async function loadPointerTexture() {
-    const imageLoader = new ImageLoader();
-    pointerTexture = await imageLoader.load(new URL('./models/world-fun/Images/cursor.png', import.meta.url));
-}
-
-await loadPointerTexture();
 
 /////////////////
 // FRONT PAGE ///
@@ -62,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
     instructionCanvas.style.display = 'none';
     youWinCanvas.style.display = 'none';
     gameOverCanvas.style.display = 'none';    
-
+    
 
     startButton.addEventListener('click', () => {
         // Hide the front page and show the game canvas
@@ -72,6 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Initialize and start the game
         render();
+        
     });
     instructions.addEventListener('click', () => {
         frontPage.style.display = 'none';
@@ -84,6 +78,9 @@ document.addEventListener('DOMContentLoaded', () => {
         frontPage.style.display = 'block';
     });
 });
+
+
+
 /////////////////
 // SCENE SETUP //
 /////////////////
@@ -149,6 +146,13 @@ light.addComponent({
     }
 });
 
+ // load the image for the cursor
+async function loadPointerTexture() {
+    const imageLoader = new ImageLoader();
+    pointerTexture = await imageLoader.load(new URL('./models/world-fun/Images/cursor.png', import.meta.url));
+}
+
+await loadPointerTexture();
 ////////////////////////
 // UPDATE AND RENDER //
 ///////////////////////
