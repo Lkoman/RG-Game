@@ -545,14 +545,17 @@ export class CollisionDetection {
     }
     
     updateXPosition(x, coordinatesT, AmmoLib){
-        const transform = new AmmoLib.btTransform();
-        const model = this.modelsData.find(m => m.name === x.name);
-        model.rigidBody.getMotionState().getWorldTransform(transform);
-        transform.setOrigin(new AmmoLib.btVector3(coordinatesT[0], coordinatesT[1], coordinatesT[2]));
-        model.rigidBody.setWorldTransform(transform);
+        const transformComponent = x.getComponentOfType(Transform);
+        transformComponent.translation = [coordinatesT[0], coordinatesT[1], coordinatesT[2]];
 
-        x.getComponentOfType(Transform).translation = [coordinatesT[0], coordinatesT[1], coordinatesT[2]];
-        
+        const model = this.modelsData.find(m => m.name === x.name);
+        const triggerBodyTransform = new AmmoLib.btTransform();
+        model.triggerRigidBody.getMotionState().getWorldTransform(triggerBodyTransform);
+        triggerBodyTransform.setOrigin(coordinatesT);
+        model.triggerRigidBody.setWorldTransform(triggerBodyTransform);
+        model.triggerRigidBody.getMotionState().setWorldTransform(triggerBodyTransform);
+
+        AmmoLib.destroy(triggerBodyTransform);
         
     }
 
