@@ -147,7 +147,7 @@ function drawText() {
     // Napišemo število pobranih X-ov, numPoints dobimo iz CollisionDetection.js
     ctx.fillText("X", 50, 50);
     ctx.fillText(collisionDetection.numPobranihX, 100, 50);
-    ctx.fillText("/ 5", 135, 50);
+    ctx.fillText("/ 5", 150, 50);
 
     // Napišemo text, ki se izpiše glede na collisionDetection (game mechanics)
     if (collisionDetection.pickUpObject) {
@@ -189,12 +189,13 @@ function onKeydown(event) {
     if ((event.key === 'E') || (event.key === 'e')) {
         console.log('E key pressed');
        if(collisionDetection.pickUpObject){
-            const names = ['dy_X1_trigger', 'dy_X2_trigger', 'dy_X3_trigger', 'dy_X4_trigger', 'dy_X5_trigger'];
-            const x = scene.find(node => names.includes(node.name));
+            const x = scene.find(node => node.name === collisionDetection.pickedUpObjectName);
+
+            console.log(x.name);
             
             // Now the node's transformation matrix is updated, so reapply it
             //x.getComponentOfType(Transform).matrix = matrix;
-            collisionDetection.updateXPosition(x, [0,0,0], ammoLib);
+            collisionDetection.updateXPosition(x.name, [0,0,0], ammoLib);
 
        }
        else if(collisionDetection.teleport){
