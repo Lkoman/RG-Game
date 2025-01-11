@@ -179,16 +179,10 @@ function drawText() {
     else if(firstPerosnController.gameMode){
         ctx.fillText('press E to exit Game mode', textCanvas.width /2, textCanvas.height - 100);
 
-        const pointerX = window.innerWidth / 2; // Centered pointer
-        const pointerY = window.innerHeight / 2;
-        drawCurosr(pointerX, pointerY);
-    }
-}
-
-function drawCurosr(x, y) {
-    if (pointerTexture) {
-        console.log(firstPerosnController.cursorX - pointerTexture.width / 2, ", ", firstPerosnController.cursorY - pointerTexture.height / 2);
-        ctx.drawImage(pointerTexture, firstPerosnController.cursorX - pointerTexture.width / 2, firstPerosnController.cursorY - pointerTexture.height / 2);
+        // If gameMode is active, draw the cursor at the mouse coordinates
+        if (pointerTexture) {
+            ctx.drawImage(pointerTexture, firstPerosnController.cursorX - pointerTexture.width / 2, firstPerosnController.cursorY - pointerTexture.height / 2);
+        }
     }
 }
 
