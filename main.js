@@ -179,11 +179,7 @@ function update(t, dt) {
         }
     });
 
-    if (collisionDetection.numPobranihX === 5) {
-        canPlay = true;
-    }
-
-    resizeCanvas();
+    //resizeCanvas();
 }
 
 function render() {
@@ -214,6 +210,9 @@ function drawText() {
         ctx.fillText('Press E to teleport', textCanvas.width /2, textCanvas.height - 100);
     }
     else if (collisionDetection.playLevel1) {
+        if (collisionDetection.numPobranihX === 5) {
+            canPlay = true;
+        }
         if (canPlay) {
             ctx.fillText('Press E to play', textCanvas.width /2, textCanvas.height - 100);
         } else {
@@ -255,47 +254,43 @@ resizeCanvas();
 
 const arrayOfX = Array(5);
 function onKeydown(event) {
-    if ((event.key === 'E') || (event.key === 'e')) {
-        console.log('E key pressed');
-       if(collisionDetection.pickUpObject){
-            const x = scene.find(node => node.name === collisionDetection.pickedUpObjectName);
-            
-            // Now the node's transformation matrix is updated, so reapply it
-            collisionDetection.updateXPosition(x.name, [0,0,0], ammoLib);
+    console.log('E key pressed');
+    if(collisionDetection.pickUpObject){
+        const x = scene.find(node => node.name === collisionDetection.pickedUpObjectName);
+        
+        // Now the node's transformation matrix is updated, so reapply it
+        collisionDetection.updateXPosition(x.name, [0,0,0], ammoLib);
 
-       }
-       else if(collisionDetection.teleport){
-            console.log('Teleport');
-       }
-       else if(collisionDetection.playLevel1 /* && canPlay*/){
-            // Če je gameMode true, dodamo cursor na mouse pointer
-            firstPerosnController.gameMode = true;
-            collisionDetection.updatePlayerPosition([-39.35, 16, -54], [0, 0, 0], ammoLib);
-       }
-       else if(firstPerosnController.gameMode){
-            // Če je gameMode false, odstranimo cursor iz mouse pointerja
-            firstPerosnController.gameMode = false;
-            // Vn iz gameMode-a
-            collisionDetection.updatePlayerPosition([-40.38089370727539, 14, -55],[0.5126658082008362, -0.4870048761367798, 0.4870048463344574, 0.512665867805481],  ammoLib);
-        }
+    }
+    else if(collisionDetection.teleport){
+        console.log('Teleport');
+    }
+    else if(collisionDetection.playLevel1 /* && canPlay*/){
+        // Če je gameMode true, dodamo cursor na mouse pointer
+        firstPerosnController.gameMode = true;
+        collisionDetection.updatePlayerPosition([-39.35, 16, -54], [0, 0, 0], ammoLib);
+    }
+    else if(firstPerosnController.gameMode){
+        // Če je gameMode false, odstranimo cursor iz mouse pointerja
+        firstPerosnController.gameMode = false;
+        // Vn iz gameMode-a
+        collisionDetection.updatePlayerPosition([-40.38089370727539, 14, -55],[0.5126658082008362, -0.4870048761367798, 0.4870048463344574, 0.512665867805481],  ammoLib);
     }
 }
 
-let debounceTimer;
 document.addEventListener('click', function () {
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => {
-        if (firstPerosnController.gameMode) {
-            onClickSave = true;
-        } else {
-            onClickSave = false;
-        }
-    }, 200); // Adjust delay as needed (200ms is common)
+    if (firstPerosnController.gameMode) {
+        onClickSave = true;
+    } else {
+        onClickSave = false;
+    }
 });
 
 function setOnKeyDown(event) {
-    onKeyDownBool = true;
-    saveEvent = event;
+    if ((event.key === 'E') || (event.key === 'e')) {
+        onKeyDownBool = true;
+        saveEvent = event;
+    }
 }
 
 document.addEventListener('keydown', setOnKeyDown);
