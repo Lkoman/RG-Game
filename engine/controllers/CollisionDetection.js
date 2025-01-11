@@ -45,6 +45,9 @@ export class CollisionDetection {
         this.scene = scene; // scene from main.js
         this.camera = scene.find(node => node.getComponentOfType(Camera)); // camera from main.js
 
+        // Physics world
+        this.physicsWorld = null; // function that advances the physics world
+
         // TABELE ZA MODELE
         this.staticModelsData = []; // tabela za shranjevanje podatkov o staticnih modelih
         this.modelsData = []; // tabela za shranjevanje podatkov o dynamicnih modelih
@@ -211,6 +214,8 @@ export class CollisionDetection {
             const solver = new AmmoLib.btSequentialImpulseConstraintSolver(); // actual collision
             const physicsWorld = new AmmoLib.btDiscreteDynamicsWorld(dispatcher, broadphase, solver, collisionConfiguration); // integrates all components and creates the physics worls, manages physics simulation
             physicsWorld.setGravity(new AmmoLib.btVector3(0, -5.81, 0));
+
+            this.physicsWorld = physicsWorld;
 
             //
             // Dodamo modele v physics world - posebej static in dynamic
@@ -526,53 +531,11 @@ export class CollisionDetection {
         return shape;
     }
 
-    // Set player position to cameraRigidBody and rotation to the camera node za GAMEMODE
-    updatePlayerPosition(coordinatesT,coordinateR, AmmoLib) {
-        // get the transform of the camera rigid body
-        const transform = new AmmoLib.btTransform();
-        this.cameraRigidBody.getMotionState().getWorldTransform(transform);
-
-        // set the new position to the camera rigid body
-        transform.setOrigin(new AmmoLib.btVector3(coordinatesT[0], coordinatesT[1], coordinatesT[2]));
-        this.cameraRigidBody.setWorldTransform(transform);
-
-        // set the new rotation to the camera node
-        this.camera.getComponentOfType(Transform).rotation = quat.fromEuler(quat.create(), coordinateR[0], coordinateR[1], coordinateR[2]);;
-
-        AmmoLib.destroy(transform);
-    }
-    
-    // Set the position of the object to the coordinatesT
-    updateXPosition(name, coordinatesT, AmmoLib) {
-        // get model from modelsData
-        const model = this.modelsData.find(m => m.name === name);
-
-        if (!model.rigidBody) {
-            console.warn(`Rigid body not found for X: ${model.name}`);
-            return;
-        }
-
-        // get the transform of the rigid body
-        const transform = new AmmoLib.btTransform();
-        model.rigidBody.getMotionState().getWorldTransform(transform);
-
-        // set the new position to the rigid body
-        transform.setOrigin(new AmmoLib.btVector3(coordinatesT[0], coordinatesT[1], coordinatesT[2]));
-        model.rigidBody.setWorldTransform(transform);
-        model.rigidBody.getMotionState().setWorldTransform(transform);
-
-        this.numPobranihX++;
-
-        AmmoLib.destroy(transform);
-
-        //x.getComponentOfType(Transform).translation = [coordinatesT[0], coordinatesT[1], coordinatesT[2]];
-    }
-
     //
     // Sync all objects with their respective rigid bodies
     //
     // Vsak frame translation, rotation modelov nastavimo na translation, rotation od njihovih rigidBody-jev
-        // To omogoča, da Ammo kalkulira končno fiziko in da se pozna collision/gravity itd.
+    // To omogoča, da Ammo kalkulira končno fiziko in da se pozna collision/gravity itd.
     syncObjects(AmmoLib) {
         this.modelsData.forEach(model => {
             // odstrani rigidBody če pade dol
@@ -619,6 +582,46 @@ export class CollisionDetection {
                 AmmoLib.destroy(transform);
             }
         });
+    }
+
+    // Set player position to cameraRigidBody and rotation to the camera node za GAMEMODE
+    updatePlayerPosition(coordinatesT,coordinateR, AmmoLib) {
+        // get the transform of the camera rigid body
+        const transform = new AmmoLib.btTransform();
+        this.cameraRigidBody.getMotionState().getWorldTransform(transform);
+
+        // set the new position to the camera rigid body
+        transform.setOrigin(new AmmoLib.btVector3(coordinatesT[0], coordinatesT[1], coordinatesT[2]));
+        this.cameraRigidBody.setWorldTransform(transform);
+
+        // set the new rotation to the camera node
+        this.camera.getComponentOfType(Transform).rotation = quat.fromEuler(quat.create(), coordinateR[0], coordinateR[1], coordinateR[2]);;
+
+        AmmoLib.destroy(transform);
+    }
+    
+    // Set the position of the object to the coordinatesT
+    updateXPosition(name, coordinatesT, AmmoLib) {
+        // get model from modelsData
+        const model = this.modelsData.find(m => m.name === name);
+
+        if (!model.rigidBody) {
+            console.warn(`Rigid body not found for X: ${model.name}`);
+            return;
+        }
+
+        // get the transform of the rigid body
+        const transform = new AmmoLib.btTransform();
+        model.rigidBody.getMotionState().getWorldTransform(transform);
+
+        // set the new position to the rigid body
+        transform.setOrigin(new AmmoLib.btVector3(coordinatesT[0], coordinatesT[1], coordinatesT[2]));
+        model.rigidBody.setWorldTransform(transform);
+        model.rigidBody.getMotionState().setWorldTransform(transform);
+
+        this.numPobranihX++;
+
+        AmmoLib.destroy(transform);
     }
 
     ///////////////////////////////////
@@ -697,10 +700,10 @@ export class CollisionDetection {
         }
 
         // IZPIS CAMERA POSITION
-        //console.log("Camera trans:", cameraTransform.translation, cameraTransform.rotation);
+        //console.log("Camera trans:", cameraTransform.translation[0], cameraTransform.translation[1], cameraTransform.translation[2]);
 
         // IZPIS CAMERA RIGID BODY POSITION
-        //console.log("Camera rigid:", origin.x(), origin.y(), origin.z(), " , ", rotation.x(), rotation.y(), rotation.z(), rotation.w());
+        //console.log("Camera rigid:", origin.x(), origin.y(), origin.z());
             
         AmmoLib.destroy(transform);
     }

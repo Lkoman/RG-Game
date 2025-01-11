@@ -18,7 +18,9 @@ export class FirstPersonController {
         decay = 0.99999,
         pointerSensitivity = 0.001,
         cameraRigidBody = null,
-        gameMode = false
+        gameMode = false,
+        cursorX = 0,
+        cursorY = 0
     } = {}) {
         this.node = node;
         this.domElement = domElement;
@@ -39,6 +41,9 @@ export class FirstPersonController {
 
         this.spacePressed = false;
         this.gameMode = gameMode;
+
+        this.cursorX = cursorX;
+        this.cursorY = cursorY;
 
         this.initHandlers();
     }
@@ -164,6 +169,13 @@ export class FirstPersonController {
 
             this.pitch = Math.min(Math.max(this.pitch, -halfpi), halfpi);
             this.yaw = ((this.yaw % twopi) + twopi) % twopi;
+        } else if (this.gameMode) {
+            this.cursorX += e.movementX;
+            this.cursorY += e.movementY;
+    
+            // Clamp cursor position to stay within canvas bounds (optional)
+            this.cursorX = Math.max(0, Math.min(this.cursorX, window.innerWidth));
+            this.cursorY = Math.max(0, Math.min(this.cursorY, window.innerHeight));
         }
     }
 

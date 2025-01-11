@@ -10,8 +10,9 @@ import { UpdateSystem } from 'engine/systems/UpdateSystem.js';
 import { UnlitRenderer } from 'engine/renderers/UnlitRenderer.js';
 import { FirstPersonController } from './engine/controllers/FirstPersonController.js';
 import { CollisionDetection } from './engine/controllers/CollisionDetection.js';
+
 import { AmmoLibExport as ammoLib } from './engine/controllers/CollisionDetection.js';
-import { getLocalModelMatrix } from './engine/core/SceneUtils.js';
+import { ImageLoader } from 'engine/loaders/ImageLoader.js';
 
 ////////////////
 // VARIABLES //
@@ -21,6 +22,21 @@ const timeStep = 1 / 60; // 60 FPS
 const maxSubSteps = 10; // če zalagga
 let onKeyDownBool = false;
 let saveEvent;
+
+// Pointer
+let pointerTexture;
+
+//////////////
+// POINTER //
+/////////////
+
+// load the image for the cursor
+async function loadPointerTexture() {
+    const imageLoader = new ImageLoader();
+    pointerTexture = await imageLoader.load(new URL('./models/world-fun/Textures/cursor1.png', import.meta.url));
+}
+
+await loadPointerTexture();
 
 /////////////////
 // FRONT PAGE ///
@@ -41,6 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     instructions.addEventListener('click', () => {});
 });
+
 /////////////////
 // SCENE SETUP //
 /////////////////
@@ -161,6 +178,17 @@ function drawText() {
     }
     else if(firstPerosnController.gameMode){
         ctx.fillText('press E to exit Game mode', textCanvas.width /2, textCanvas.height - 100);
+
+        const pointerX = window.innerWidth / 2; // Centered pointer
+        const pointerY = window.innerHeight / 2;
+        drawCurosr(pointerX, pointerY);
+    }
+}
+
+function drawCurosr(x, y) {
+    if (pointerTexture) {
+        console.log(firstPerosnController.cursorX - pointerTexture.width / 2, ", ", firstPerosnController.cursorY - pointerTexture.height / 2);
+        ctx.drawImage(pointerTexture, firstPerosnController.cursorX - pointerTexture.width / 2, firstPerosnController.cursorY - pointerTexture.height / 2);
     }
 }
 
@@ -202,14 +230,22 @@ function onKeydown(event) {
             console.log('Teleport');
        }
        else if(collisionDetection.playLevel1){
+
             console.log('Play level 1');
+
+            // Če je gameMode true, dodamo cursor na mouse pointer
             firstPerosnController.gameMode = true;
-            //collisionDetection.syncPlayerCameraTR(collisionDetection.cameraRigidBody, collisionDetection.camera, ammoLib, 0);
-            collisionDetection.updatePlayerPosition([-39, 16, -50], [0, 0,  0], ammoLib);
+            canvas.classList.add('custom-pointer');
+
+            // Nastavimo pozicijo, ki je set za gameMode
+            collisionDetection.updatePlayerPosition([-39.35, 16, -54], [2, 0, 0], ammoLib);
        }
        else if(firstPerosnController.gameMode){
+            // Če je gameMode false, odstranimo cursor iz mouse pointerja
             firstPerosnController.gameMode = false;
-            //collisionDetection.syncPlayerCameraTR(collisionDetection.cameraRigidBody, collisionDetection.camera, ammoLib, 1);
+            canvas.classList.remove('custom-pointer');
+
+            // Vn iz gameMode-a
             collisionDetection.updatePlayerPosition([-40.38089370727539, 14, -55],[0.5126658082008362, -0.4870048761367798, 0.4870048463344574, 0.512665867805481],  ammoLib);
         }
     }
