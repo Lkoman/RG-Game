@@ -640,17 +640,17 @@ export class CollisionDetection {
         model.rigidBody.setWorldTransform(transform);
         model.rigidBody.getMotionState().setWorldTransform(transform);
 
-        this.numPobranihX++;
-
-        //this.makeRigidBodyStatic(model.rigidBody, AmmoLib);
-
-        // Remove the trigger rigid body from the map, tako da se ne bo naprej gledal za collision
-        let triggerBody = this.modelsData.find(m => m.name === name).triggerRigidBody;
-
-        if (this.triggerRigidBodyMap.has(triggerBody.kB)) {
-            this.triggerRigidBodyMap.delete(triggerBody.kB);
+        if (this.numPobranihX <= 5) {
+            this.numPobranihX++;
         } else {
-            console.warn(`Key ${triggerBody.kB} not found in triggerRigidBodyMap.`);
+            // Remove the trigger rigid body from the map, tako da se ne bo naprej gledal za collision
+            let triggerBody = this.modelsData.find(m => m.name === name).triggerRigidBody;
+
+            if (this.triggerRigidBodyMap.has(triggerBody.kB)) {
+                this.triggerRigidBodyMap.delete(triggerBody.kB);
+            } else {
+                console.warn(`Key ${triggerBody.kB} not found in triggerRigidBodyMap.`);
+            }
         }
 
 
