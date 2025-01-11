@@ -28,7 +28,14 @@ let saveEvent;
 document.addEventListener('DOMContentLoaded', () => {
     const startButton = document.getElementById('start-button');
     const frontPage = document.getElementById('front-page');
-    const instructions = document.getElementById('how-to-play');
+    const instructions = document.getElementById('how-to-play-button');
+    const instructionCanvas = document.getElementById('instructionCanvas');
+    
+    webgpuCanvas.style.display = 'none';
+    textCanvas.style.display = 'none';
+    instructionCanvas.style.display = 'none';
+    
+
 
     startButton.addEventListener('click', () => {
         // Hide the front page and show the game canvas
@@ -39,7 +46,17 @@ document.addEventListener('DOMContentLoaded', () => {
         // Initialize and start the game
         render();
     });
-    instructions.addEventListener('click', () => {});
+
+    instructions.addEventListener('click', () => {
+        frontPage.style.display = 'none';
+        instructionCanvas.style.display = 'block';
+    });
+
+    instructionCanvas.addEventListener('click', () => {
+        // Hide the instructions canvas and text when clicked
+        instructionCanvas.style.display = 'none';
+        frontPage.style.display = 'block';
+    });
 });
 /////////////////
 // SCENE SETUP //
