@@ -63,6 +63,7 @@ export class CollisionDetection {
         this.teleport = false;
         this.playLevel1 = false;
         this.numPobranihX = 0;
+        this.pickedUpObjectName = '';
 
         //
         // GROUPS AND MASKS
@@ -525,40 +526,53 @@ export class CollisionDetection {
         return shape;
     }
 
-    //
-    // Sync all objects with their respective rigid bodies
-    //
-    // Vsak frame translation, rotation modelov nastavimo na translation, rotation od njihovih rigidBody-jev
-        // To omogoča, da Ammo kalkulira končno fiziko in da se pozna collision/gravity itd.  
-
-    updatePlayerPosition(coordinatesT,coordinateR, AmmoLib){
+    // Set player position to cameraRigidBody and rotation to the camera node za GAMEMODE
+    updatePlayerPosition(coordinatesT,coordinateR, AmmoLib) {
+        // get the transform of the camera rigid body
         const transform = new AmmoLib.btTransform();
         this.cameraRigidBody.getMotionState().getWorldTransform(transform);
+
+        // set the new position to the camera rigid body
         transform.setOrigin(new AmmoLib.btVector3(coordinatesT[0], coordinatesT[1], coordinatesT[2]));
         this.cameraRigidBody.setWorldTransform(transform);
 
-        this.camera.getComponentOfType(Transform).rotation = quat.fromEuler(quat.create(), coordinateR[0], coordinateR[1], coordinateR[2]);
-        //this.camera.rotation = quat.fromValues(coordinateR[0], coordinateR[1], coordinateR[2], coordinateR[3]);
-        //transform.setRotation(new AmmoLib.btQuaternion(coordinateR[0], coordinateR[1], coordinateR[2], coordinateR[3]));
+        // set the new rotation to the camera node
+        this.camera.getComponentOfType(Transform).rotation = quat.fromEuler(quat.create(), coordinateR[0], coordinateR[1], coordinateR[2]);;
 
         AmmoLib.destroy(transform);
     }
     
-    updateXPosition(x, coordinatesT, AmmoLib){
-        const transformComponent = x.getComponentOfType(Transform);
-        transformComponent.translation = [coordinatesT[0], coordinatesT[1], coordinatesT[2]];
+    // Set the position of the object to the coordinatesT
+    updateXPosition(name, coordinatesT, AmmoLib) {
+        // get model from modelsData
+        const model = this.modelsData.find(m => m.name === name);
 
-        const model = this.modelsData.find(m => m.name === x.name);
-        const triggerBodyTransform = new AmmoLib.btTransform();
-        model.triggerRigidBody.getMotionState().getWorldTransform(triggerBodyTransform);
-        triggerBodyTransform.setOrigin(coordinatesT);
-        model.triggerRigidBody.setWorldTransform(triggerBodyTransform);
-        model.triggerRigidBody.getMotionState().setWorldTransform(triggerBodyTransform);
+        if (!model.rigidBody) {
+            console.warn(`Rigid body not found for X: ${model.name}`);
+            return;
+        }
 
-        AmmoLib.destroy(triggerBodyTransform);
-        
+        // get the transform of the rigid body
+        const transform = new AmmoLib.btTransform();
+        model.rigidBody.getMotionState().getWorldTransform(transform);
+
+        // set the new position to the rigid body
+        transform.setOrigin(new AmmoLib.btVector3(coordinatesT[0], coordinatesT[1], coordinatesT[2]));
+        model.rigidBody.setWorldTransform(transform);
+        model.rigidBody.getMotionState().setWorldTransform(transform);
+
+        this.numPobranihX++;
+
+        AmmoLib.destroy(transform);
+
+        //x.getComponentOfType(Transform).translation = [coordinatesT[0], coordinatesT[1], coordinatesT[2]];
     }
 
+    //
+    // Sync all objects with their respective rigid bodies
+    //
+    // Vsak frame translation, rotation modelov nastavimo na translation, rotation od njihovih rigidBody-jev
+        // To omogoča, da Ammo kalkulira končno fiziko in da se pozna collision/gravity itd.
     syncObjects(AmmoLib) {
         this.modelsData.forEach(model => {
             // odstrani rigidBody če pade dol
@@ -736,6 +750,7 @@ export class CollisionDetection {
             else if (triggeredObject.name.includes("dy_X")) {
                 this.pickUpObject = true;
                 this.teleport = false;
+                this.pickedUpObjectName = triggeredObject.name;
             }
             else if (triggeredObject.name.includes("Portal")) {
                 this.teleport = true;
