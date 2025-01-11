@@ -23,6 +23,10 @@ const timeStep = 1 / 60; // 60 FPS
 const maxSubSteps = 10; // če zalagga
 let onKeyDownBool = false;
 let saveEvent;
+
+var victory = false;
+var defeat = false;
+
 let onClickSave = false; // to shrani, če je bila miška kliknjena, ko je bil gameMode true, da lahko uporabimo v CollisionDetection.js, da ugotovimo na kateri board je kliknil player
 let canPlay = false; // če je igralec pobral vseh 5 X-ov lahko igra, drugače ne
 
@@ -44,23 +48,42 @@ await loadPointerTexture();
 /////////////////
 // FRONT PAGE ///
 /////////////////
+
 document.addEventListener('DOMContentLoaded', () => {
     const startButton = document.getElementById('start-button');
     const frontPage = document.getElementById('front-page');
-    const instructions = document.getElementById('how-to-play');
+    const instructions = document.getElementById('how-to-play-button');
+    const instructionCanvas = document.getElementById('instructionCanvas');
+    const youWinCanvas = document.getElementById('you-won-canvas');
+    const gameOverCanvas = document.getElementById('game-over-canvas');
+    
+    canvas.style.display = 'none';
+    textCanvas.style.display = 'none';
+    instructionCanvas.style.display = 'none';
+    youWinCanvas.style.display = 'none';
+    gameOverCanvas.style.display = 'none';    
+
 
     startButton.addEventListener('click', () => {
         // Hide the front page and show the game canvas
         frontPage.style.display = 'none';
         webgpuCanvas.style.display = 'block';
         textCanvas.style.display = 'block';
-
+        
         // Initialize and start the game
         render();
     });
-    instructions.addEventListener('click', () => {});
-});
+    instructions.addEventListener('click', () => {
+        frontPage.style.display = 'none';
+        instructionCanvas.style.display = 'block';
+    });
 
+    instructionCanvas.addEventListener('click', () => {
+        // Hide the instructions canvas and text when clicked
+        instructionCanvas.style.display = 'none';
+        frontPage.style.display = 'block';
+    });
+});
 /////////////////
 // SCENE SETUP //
 /////////////////
@@ -101,7 +124,7 @@ const firstPerosnController = new FirstPersonController(camera, canvas);
 camera.getComponentOfType(Transform).rotation = quat.fromEuler(quat.create(), 0, 0, 0);
 camera.addComponent(firstPerosnController);
 
-const levelController = new LevelController();
+//const levelController = new LevelController();
 
 //
 // Add a light - sun
@@ -234,7 +257,7 @@ function onKeydown(event) {
             const x = scene.find(node => node.name === collisionDetection.pickedUpObjectName);
             
             // Now the node's transformation matrix is updated, so reapply it
-            collisionDetection.updateXPosition(x.name, [0,20,0], ammoLib);
+            collisionDetection.updateXPosition(x.name, [0,0,0], ammoLib);
 
        }
        else if(collisionDetection.teleport){
