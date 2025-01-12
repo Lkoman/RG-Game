@@ -51,7 +51,7 @@ export class LevelController {
         else if (this.possibilities.forEach((i) => this.possibilities[i] != 0)) {
             console.log("It's a tie!");
             console.log(this.possibilities);
-            gameOver = true;
+            this.gameOver = true;
         }
     }
 
