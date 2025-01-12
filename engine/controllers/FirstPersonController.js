@@ -71,7 +71,7 @@ export class FirstPersonController {
         });
     }
 
-    update(t, dt) {
+    updateFPC(t, dt) {
         // Calculate forward and right vectors.
         const cos = Math.cos(this.yaw);
         const sin = Math.sin(this.yaw);

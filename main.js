@@ -20,7 +20,7 @@ import { AmmoLibExport as ammoLib } from './engine/controllers/CollisionDetectio
 ///////////////
 
 const timeStep = 1 / 60; // 60 FPS
-const maxSubSteps = 10; // če zalagga
+const maxSubSteps = 10; // če FPS droppa, bo Ammo probu 2 koraka na frame, da ne zgleda preveč laggy
 let onKeyDownBool = false;
 let saveEvent;
 
@@ -114,7 +114,7 @@ await renderer.initialize();
 // Load the world model
 //
 const worldLoader = new GLTFLoader();
-await worldLoader.load(new URL('./models/world-fun/world.gltf', import.meta.url));
+await worldLoader.load(new URL('./models/world-fun/world-small.gltf', import.meta.url));
 const scene = worldLoader.loadScene(worldLoader.defaultScene); // Add the model to the scene
 
 //
@@ -153,6 +153,7 @@ light.addComponent(new Light({
     type: 'directional', // Sun
     color: [1, 1, 1],
     intensity: 100.0,
+    name: 'Sun',
 }));
 
 light.addComponent({
@@ -160,6 +161,8 @@ light.addComponent({
         lightTransform.translation = [0, 1000, 0];
     }
 });
+
+collisionDetection.dynamicNodes.push(light);
 
  // load the image for the cursor
 async function loadPointerTexture() {
@@ -185,23 +188,29 @@ function update(t, dt) {
             collisionDetection.checkBoardCollisionsLevel1(onClickSave, levelController);
             onClickSave = false;
         }
+        firstPerosnController.updateFPC(t, dt);
     }
 
     // Update all components
-    scene.traverse(node => {
-        for (const component of node.components) {
-            component.update?.(t, dt);
-        }
-    });
+    if (collisionDetection.dynamicNodes) {
+        collisionDetection.dynamicNodes.forEach(node => {
+            for (const component of node.components) {
+                component.update?.(t, dt);
+            }
+        });
+    } else {
+        scene.traverse(node => {
+            for (const component of node.components) {
+                component.update?.(t, dt);
+            }
+        });
+    }
+
     if(levelController.gameOver){
         textCanvas.style.display = 'none';
-        //console.log(levelController.gameOver);
-        //console.log(levelController.playerWin);	
         frontPage.style.display = 'none';
         gameOverCanvas.style.display = 'block';
-    }
-    
-    //resizeCanvas();
+    }    
 }
 
 function render() {
@@ -216,16 +225,37 @@ function resize({ displaySize: { width, height }}) {
     camera.getComponentOfType(Camera).aspect = width / height;
 }
 
-function drawText() {
+export function drawText() {
     ctx.clearRect(0, 0, textCanvas.width, textCanvas.height); // Clear previous text
 
     // Napišemo število pobranih X-ov, numPoints dobimo iz CollisionDetection.js
-    ctx.fillText("X", 50, 50);
-    ctx.fillText(collisionDetection.numPobranihX, 100, 50);
-    ctx.fillText("/ 5", 150, 50);
+    ctx.fillText("X", 150, 150);
+    ctx.fillText(collisionDetection.numPobranihX, 200, 150);
+    ctx.fillText("/ 5", 250, 150);
+    ctx.fillText("Cats", 180, 250);
+    ctx.fillText(collisionDetection.numPobranihCats, 260, 250);
 
+    if (collisionDetection.portal2) {
+        if (collisionDetection.pickUpObject) {
+            collisionDetection.pickUpObject = collisionDetection.portal2Happy;
+        }
+    
+        if (collisionDetection.portal2Happy == false) {
+            ctx.fillText('I am an unused portal...I am sad and lonely. I want a cat.', textCanvas.width /2, textCanvas.height - 150);
+            if (collisionDetection.numPobranihCats > 0) {
+                ctx.fillText('Press E to give portal a cat', textCanvas.width /2, textCanvas.height - 100);
+            }
+        } else {
+            ctx.fillText('Thank you! You can have this X.', textCanvas.width /2, textCanvas.height - 150);
+            if (collisionDetection.portalGiveCat) {
+                const x = scene.find(node => node.name === "dy_X2_trigger");
+                collisionDetection.updateXPosition(x.name, [19.5,12.5,1.5], ammoLib, false);
+                collisionDetection.portalGiveCat = false;
+            }
+        }
+    }
     // Napišemo text, ki se izpiše glede na collisionDetection (game mechanics)
-    if (collisionDetection.pickUpObject) {
+    else if (collisionDetection.pickUpObject) {
         ctx.fillText('Press E to pick up', textCanvas.width /2, textCanvas.height - 100);
     }
     else if (collisionDetection.teleport) {
@@ -276,23 +306,36 @@ resizeCanvas();
 
 const arrayOfX = Array(5);
 function onKeydown(event) {
-    console.log('E key pressed');
-    if(collisionDetection.pickUpObject){
-        const x = scene.find(node => node.name === collisionDetection.pickedUpObjectName);
-        
-        // Now the node's transformation matrix is updated, so reapply it
-        collisionDetection.updateXPosition(x.name, [0,0,0], ammoLib);
+    //console.log('E key pressed');
+
+    if (collisionDetection.portal2Happy == false && collisionDetection.portal2 && collisionDetection.numPobranihCats > 0) {
+        collisionDetection.portalGiveCat = true;
+        collisionDetection.portal2Happy = true;
+        collisionDetection.numPobranihCats--;
+    }
+    else if (collisionDetection.pickUpObject) {
+        if (collisionDetection.pickedUpObjectName.includes('X')) {
+            const x = scene.find(node => node.name === collisionDetection.pickedUpObjectName);
+            
+            // Now the node's transformation matrix is updated, so reapply it
+            collisionDetection.updateXPosition(x.name, [0,20,0], ammoLib, true);
+        } else {
+            //console.log("Picked up a cat");
+            const cat = scene.find(node => node.name === collisionDetection.pickedUpObjectName);
+            collisionDetection.updateOPosition(cat.name, [0,0,0], "cat", ammoLib);
+            collisionDetection.numPobranihCats++;
+        }
 
     }
-    else if(collisionDetection.teleport){
+    else if (collisionDetection.teleport) {
         console.log('Teleport');
     }
-    else if(collisionDetection.playLevel1 /* && canPlay*/){
+    else if (collisionDetection.playLevel1 && canPlay) {
         // Če je gameMode true, dodamo cursor na mouse pointer
         firstPerosnController.gameMode = true;
         collisionDetection.updatePlayerPosition([-39.35, 16, -54], [0, 0, 0], ammoLib);
     }
-    else if(firstPerosnController.gameMode){
+    else if (firstPerosnController.gameMode) {
         // Če je gameMode false, odstranimo cursor iz mouse pointerja
         firstPerosnController.gameMode = false;
         // Vn iz gameMode-a

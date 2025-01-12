@@ -6,6 +6,8 @@ import { maxSpeed } from './FirstPersonController.js';
 
 import { getGlobalModelMatrix } from '../core/SceneUtils.js';
 
+import { drawText } from '../../main.js';
+
 // export this.cameraRigidBody in AmmoLib instance za uporabo v FirstPersonController
 export let camRigidBody;
 export let AmmoLibExport;
@@ -52,6 +54,8 @@ export class CollisionDetection {
         this.staticModelsData = []; // tabela za shranjevanje podatkov o staticnih modelih
         this.modelsData = []; // tabela za shranjevanje podatkov o dynamicnih modelih
 
+        this.dynamicNodes = []; // samo te nodes se bodo update-ale vsak frame v main.js
+
         // RIGID BODIES
         this.rigidBodyMap = new Map(); // map rigidBodyjev od vseh modelov, ki jih imajo (rigidBody id, model name)
         this.triggerRigidBodyMap = new Map(); // map rigidBodyjev od vseh modelov, ki imajo dodatno še rigidBody za trigger
@@ -65,8 +69,20 @@ export class CollisionDetection {
         this.pickUpObject = false;
         this.teleport = false;
         this.playLevel1 = false;
+        this.portal2 = false;
+        this.portal2Happy = false;
+        this.portalGiveCat = false;
+
         this.numPobranihX = 0;
+        this.numPobranihCats = 0;
         this.pickedUpObjectName = '';
+
+        // Helpers
+        this.sharedTransform;
+        this.sharedVec3;
+        this.sharedVec4;
+
+        this.ammoObjectsForCleanup = [];
 
         //
         // GROUPS AND MASKS
@@ -156,6 +172,9 @@ export class CollisionDetection {
                     }
                 });
             }
+            if (node.name && (node.name.startsWith("dy_") || node.name == "Camera" || node.name == "Sun")) {
+                this.dynamicNodes.push(node);
+            }
         });
 
         // INSTANCES
@@ -190,14 +209,11 @@ export class CollisionDetection {
         tmpData.forEach(model => {
             if (model.name.startsWith("dy_")) {
                 this.modelsData.push(model);
-            } 
+            }
             else {
                 this.staticModelsData.push(model);
             }
         });
-
-        //console.log("modelsData: ", this.modelsData);
-        //console.log("staticModelsData: ", this.staticModelsData);
 
         /////////////////
         // IMPORT AMMO //
@@ -216,6 +232,9 @@ export class CollisionDetection {
             physicsWorld.setGravity(new AmmoLib.btVector3(0, -5.81, 0));
 
             this.physicsWorld = physicsWorld;
+            this.sharedTransform = new AmmoLib.btTransform();
+            this.sharedVec3 = new AmmoLib.btVector3();
+            this.sharedVec4 = new AmmoLib.btQuaternion();
 
             //
             // Dodamo modele v physics world - posebej static in dynamic
@@ -284,6 +303,9 @@ export class CollisionDetection {
                 mass = 200;
                 aabb = true;
             }
+            else if (name == "dy_apple") { // apple je lahek in ima sphere collision
+                mass = 1;
+            }
             // Če se model začne z aabb_ mu nastavimo box collision 
             else if (name.startsWith("aabb_")) {
                 aabb = true;
@@ -297,9 +319,11 @@ export class CollisionDetection {
                 mass = 0.3;
             }
             // Xom dodamo used, da ugotovimo če so bili že used na boardu med igro
-            else if (name.startsWith("dy_X") || name.startsWith("aabb_O")) {
+            else if (name.startsWith("dy_X") || name.startsWith("aabb_O") || name.startsWith("X")) {
                 model.used = false;
+                aabb = true;
             }
+
             // Ostali modeli, ki nimajo teh posebnosti, bodo imeli mesh collision box, default mass (1 ali 0)
 
             ////////////////////////
@@ -312,7 +336,6 @@ export class CollisionDetection {
                 .then(rigidBody => {
                     model.triggerRigidBody = rigidBody;
                     this.triggerRigidBodyMap.set(rigidBody.kB, { name: name });
-                    //console.log("Object ", name, " added successfully.");
                 })
                 .catch((error) => {
                     if (modelType === this.modelsData) console.error("Failed to add triggerRigidBody for DYNAMIC object", name , error);
@@ -372,15 +395,16 @@ export class CollisionDetection {
 
                 // če je ta rigid body a trigger mu dodamo margin
                 if (trigger) {
-                    shape.setMargin(20);
+                    shape.setMargin(15);
                 }
 
                 // Rigid body moramo narediti z transformom, na katerem stoji renderan objekt
-                const transform = new AmmoLib.btTransform();
+                const transform = this.sharedTransform;
                 transform.setIdentity();
 
                 // Translation
-                transform.setOrigin(new AmmoLib.btVector3(initialPosition[0], initialPosition[1], initialPosition[2]));
+                const initialOrigin = new AmmoLib.btVector3(initialPosition[0], initialPosition[1], initialPosition[2]);
+                transform.setOrigin(initialOrigin);
 
                 // Rotation
                 const rotation = new AmmoLib.btQuaternion(initialRotation[0], initialRotation[1], initialRotation[2], initialRotation[3]);
@@ -408,7 +432,7 @@ export class CollisionDetection {
                 rigidBody.setCollisionFlags(flag);
 
                 // Add the rigid body to the physics world, with speicifc groups and masks, so they know how to interact with each other
-                if (name.startsWith("Plane") || name.startsWith("Hell")) {
+                if (name.startsWith("Plane")) {
                     physicsWorld.addRigidBody(rigidBody, this.GROUP_PLANE, this.MASK_PLANE);
                 }
                 // dynamic objects (triggers and non triggers)
@@ -427,6 +451,15 @@ export class CollisionDetection {
                         physicsWorld.addRigidBody(rigidBody, this.GROUP_STATIC, this.MASK_STATIC);
                     }
                 }
+
+                AmmoLib.destroy(initialOrigin);
+                AmmoLib.destroy(rotation);
+                AmmoLib.destroy(scaling);
+                //AmmoLib.destroy(motionState); // ne smemo destroyat motionState, ker ga rabimo za syncObjects
+                AmmoLib.destroy(localInertia);
+                AmmoLib.destroy(rigidBodyInfo);
+                //AmmoLib.destroy(rigidBody); // ne smemo destroyat rigidBody, ker ga rabimo za syncObjects
+                //AmmoLib.destroy(shape); // ne smemo destroyat shape, ker ga rabimo za syncObjects
 
                 resolve(rigidBody);
 
@@ -472,7 +505,11 @@ export class CollisionDetection {
 
         // AABB
         if (type == "aabb") {
-            return (new AmmoLib.btBoxShape(new AmmoLib.btVector3(halfExtents[0], halfExtents[1], halfExtents[2])));
+            // TRIGGER AABB
+            let vectorAABB = new AmmoLib.btVector3(halfExtents[0], halfExtents[1], halfExtents[2]);
+            let shape = new AmmoLib.btBoxShape(vectorAABB);
+            AmmoLib.destroy(vectorAABB);
+            return (shape);
         } 
         // SPHERE
         else if (type == "sphere") {
@@ -562,7 +599,7 @@ export class CollisionDetection {
     
             const motionState = model.rigidBody.getMotionState();
             if (motionState) {
-                const transform = new AmmoLib.btTransform();
+                let transform = this.sharedTransform;
                 motionState.getWorldTransform(transform);
         
                 const origin = transform.getOrigin();
@@ -583,18 +620,13 @@ export class CollisionDetection {
 
                 // Če ima model tudi trigger body, mu nastavimo triggerBody = rigidBody position
                 if (model.triggerRigidBody) {
-                    //console.log("Setting trigger body position: ", origin.x(), origin.y(), origin.z());
-                    const triggerBodyTransform = new AmmoLib.btTransform();
-                    model.triggerRigidBody.getMotionState().getWorldTransform(triggerBodyTransform);
+                    let transformTRG = this.sharedTransform;
+                    model.triggerRigidBody.getMotionState().getWorldTransform(transformTRG);
 
-                    triggerBodyTransform.setOrigin(origin);
-                    model.triggerRigidBody.setWorldTransform(triggerBodyTransform);
-                    model.triggerRigidBody.getMotionState().setWorldTransform(triggerBodyTransform);
-
-                    AmmoLib.destroy(triggerBodyTransform);
+                    transformTRG.setOrigin(origin);
+                    model.triggerRigidBody.setWorldTransform(transformTRG);
+                    model.triggerRigidBody.getMotionState().setWorldTransform(transformTRG);
                 }
-        
-                AmmoLib.destroy(transform);
             }
         });
     }
@@ -610,9 +642,9 @@ export class CollisionDetection {
         const boxShape = new AmmoLib.btBoxShape(halfExtents);
     
         // Create the rigid body
-        const transform = new AmmoLib.btTransform();
+        let transform = this.sharedTransform;
         transform.setIdentity();
-        transform.setOrigin(new AmmoLib.btVector3(-50, 20, -60));
+        transform.setOrigin(new AmmoLib.btVector3(50, 20, 50));
 
         const motionState = new AmmoLib.btDefaultMotionState(transform);
     
@@ -622,7 +654,8 @@ export class CollisionDetection {
 
         const rigidBodyInfo = new AmmoLib.btRigidBodyConstructionInfo(mass, motionState, boxShape, localInertia);
         const rigidBody = new AmmoLib.btRigidBody(rigidBodyInfo);
-        rigidBody.setAngularFactor(new Ammo.btVector3(0, 0, 0)); // Prevent the camera from rotating / falling over
+        const noRotation = new AmmoLib.btVector3(0, 0, 0);
+        rigidBody.setAngularFactor(noRotation); // Prevent the camera from rotating / falling over
     
         rigidBody.setCollisionFlags(0); // dynamic
         rigidBody.setDamping(0.2, 0.0); // 50% linear damping, 0% angular damping
@@ -634,8 +667,9 @@ export class CollisionDetection {
     
         // Clean up temporary Ammo.js objects
         AmmoLib.destroy(halfExtents);
-        AmmoLib.destroy(transform);
         AmmoLib.destroy(localInertia);
+        AmmoLib.destroy(rigidBodyInfo);
+        AmmoLib.destroy(noRotation);
 
         camRigidBody = rigidBody;
 
@@ -654,7 +688,7 @@ export class CollisionDetection {
     // Keyboard controls so v FirstPersonController.js, ki se zgodijo najprej, nato pa ta funkcija
     syncPlayerCameraTR(rigidBody, camera, AmmoLib, dt) {
         // preberemo from ammo/bullet kje je rigid body od kamere
-        const transform = new AmmoLib.btTransform();
+        const transform = this.sharedTransform;
         rigidBody.getMotionState().getWorldTransform(transform);
     
         // preberemo koordinate rigid body od kamere
@@ -678,9 +712,7 @@ export class CollisionDetection {
         //console.log("Camera trans:", cameraTransform.translation[0], cameraTransform.translation[1], cameraTransform.translation[2]);
 
         // IZPIS CAMERA RIGID BODY POSITION
-        //console.log("Camera rigid:", origin.x(), origin.y(), origin.z());
-            
-        AmmoLib.destroy(transform);
+        //console.log("Camera rigid:", origin.x(), origin.y(), origin.z());            
     }
 
     //////////////////////////////////
@@ -709,31 +741,35 @@ export class CollisionDetection {
             this.pickUpObject = false;
             this.teleport = false;
             this.playLevel1 = false;
+            this.portal2 = false;
+            this.pickedUpObjectName = "";
         }
     }
 
     // Check for triggers and call specific gameplay functions
     checkForTriggers(body) {
-        //console.log(body.kB);
-        //console.log(this.triggerRigidBodyMap.get(body.kB));
-
         var triggeredObject = this.triggerRigidBodyMap.get(body.kB);
 
         if (triggeredObject) {
-            if (triggeredObject.name.includes("PlayingBoard")) {
-                this.playLevel1 = true;
-                this.teleport = false;
-                this.pickUpObject = false;
-            }
-            else if (triggeredObject.name.includes("dy_X")) {
+            if (triggeredObject.name.includes("dy_X") || triggeredObject.name.includes("aabb_Cat")) {
                 this.pickUpObject = true;
                 this.teleport = false;
                 this.pickedUpObjectName = triggeredObject.name;
             }
-            else if (triggeredObject.name.includes("Portal")) {
+            if (triggeredObject.name.includes("Portal2")) {
+                this.portal2 = true;
+            }
+            else if (triggeredObject.name.includes("PlayingBoard")) {
+                this.playLevel1 = true;
+                this.teleport = false;
+                this.pickUpObject = false;
+                this.portal2 = false;
+            }
+            else if (triggeredObject.name.includes("Portal_trigger")) {
                 this.teleport = true;
                 this.pickUpObject = false;
                 this.playLevel1 = false;
+                this.portal2 = false;
             }
         }
     }
@@ -741,19 +777,19 @@ export class CollisionDetection {
     // Set player position to cameraRigidBody and rotation to the camera node za GAMEMODE
     updatePlayerPosition(coordinatesT, coordinateR, AmmoLib) {
         // get the transform of the camera rigid body
-        const transform = new AmmoLib.btTransform();
+        const transform = this.sharedTransform;
         this.cameraRigidBody.getMotionState().getWorldTransform(transform);
 
         // set the new position to the camera rigid body
-        transform.setOrigin(new AmmoLib.btVector3(coordinatesT[0], coordinatesT[1], coordinatesT[2]));
+        const newPosition = this.sharedVec3;
+        newPosition.setValue(coordinatesT[0], coordinatesT[1], coordinatesT[2]);
+        transform.setOrigin(newPosition);
         this.cameraRigidBody.setWorldTransform(transform);
 
         // set the new rotation to the camera node
         if (coordinateR != null) {
             this.camera.getComponentOfType(Transform).rotation = quat.fromEuler(quat.create(), coordinateR[0], coordinateR[1], coordinateR[2]);;
         }
-
-        AmmoLib.destroy(transform);
     }
     
     //
@@ -761,10 +797,9 @@ export class CollisionDetection {
     //
         // #1 ko pobiramo X-e jih prestavimo na (0, 0, 0)
         // #2 ko igramo igro, jih postavimo na boad na pravilno mesto
-    updateXPosition(name, coordinatesT, AmmoLib) {
+    updateXPosition(name, coordinatesT, AmmoLib, pickedUp) {
         // dobimo X iz models data
         let model = this.modelsData.find(m => m.name === name); 
-
         // nekaj je šlo narobe
         if (!model.rigidBody) {
             console.warn(`Rigid body not found for X: ${model.name}`);
@@ -772,24 +807,28 @@ export class CollisionDetection {
         }
 
         // get the transform of the rigid body
-        const transform = new AmmoLib.btTransform();
+        const transform = this.sharedTransform;
         model.rigidBody.getMotionState().getWorldTransform(transform);
 
         // set the new position to the rigid body
-        transform.setOrigin(new AmmoLib.btVector3(coordinatesT[0], coordinatesT[1], coordinatesT[2]));
+        const newPosition = this.sharedVec3;
+        newPosition.setValue(coordinatesT[0], coordinatesT[1], coordinatesT[2]);
+        transform.setOrigin(newPosition);
 
         // set the rotation to 90, 0, 45
-        transform.setRotation(new AmmoLib.btQuaternion(0, 0, 0.383, 0.924));
+        const newRotation = this.sharedVec4;
+        newRotation.setValue(0, 0, 0.383, 0.924);
+        transform.setRotation(newRotation);
 
         model.rigidBody.setWorldTransform(transform);
         model.rigidBody.getMotionState().setWorldTransform(transform);
 
         // Če še ni bilo pobranih 5 X-ov, pomeni da še ne igramo igre, in samo pobiramo X-e
-        if (this.numPobranihX <= 5) {
+        if (this.numPobranihX < 5 && pickedUp) {
             this.numPobranihX++;
         } 
         // To se pa zgodi ko se igra igra - remove triggerRigidBody od X-a in ga postavimo na board (zgoraj)
-        else {
+        else if (pickedUp) {
             // Remove the trigger rigid body from the map, tako da se ne bo naprej gledal za collision
             let triggerBody = this.modelsData.find(m => m.name === name).triggerRigidBody;
 
@@ -799,18 +838,37 @@ export class CollisionDetection {
                 console.warn(`Key ${triggerBody.kB} not found in triggerRigidBodyMap.`);
             }
         }
-
-        AmmoLib.destroy(transform);
     }
 
     // Update the position of the actual model, in ne its rigidBody kr je O static, kar pomen da se ne checka njegova spremenjena pozicija - kar pomeni da če spremenim rigidBody bo model ostau na mestu
-    updateOPosition(name, coordinatesT) {
+    updateOPosition(name, coordinatesT, catOrO, AmmoLib) {
         // set the translation of the model O to the new position - not in Ammo because O does not have a rigidBody
         let model = this.scene.find(node => node.name === name);
         const transformComponent = model.getComponentOfType(Transform);
         transformComponent.translation = coordinatesT;
         // rotate it for 90, 0, 0
         transformComponent.rotation = quat.fromEuler(quat.create(), 90, 0, 0);
+
+        // prestavimo še position triggerRigidBody-ja od cat na coordinatesT
+        if (catOrO == "cat") {
+            let model = this.staticModelsData.find(m => m.name === name);
+            if (!model.triggerRigidBody) {
+                console.warn(`Rigid body not found for cat: ${model.name}`);
+                return;
+            }
+
+            // get the transform of the rigid body
+            const transform = this.sharedTransform;
+            model.triggerRigidBody.getMotionState().getWorldTransform(transform);
+
+            // set the new position to the rigid body
+            const newPosition = this.sharedVec3;
+            newPosition.setValue(coordinatesT[0], coordinatesT[1], coordinatesT[2]);
+            transform.setOrigin(newPosition);
+
+            model.triggerRigidBody.setWorldTransform(transform);
+            model.triggerRigidBody.getMotionState().setWorldTransform(transform);
+        }
     }
 
     // Check if the cameras ray is intersecting with the playingBoards board00, board01, board22,...
@@ -820,7 +878,7 @@ export class CollisionDetection {
         if (levelController.gameOver == true || levelController.playerWin == true) {
             return;
         }
-        
+
         const cameraTransform = this.camera.getComponentOfType(Transform);
         const origin = cameraTransform.translation;
         const rotationQuat = cameraTransform.rotation;
@@ -866,7 +924,7 @@ export class CollisionDetection {
 
                             // Pogledamo če je igralec zmagal (1 je igralec, -1 je AI)
                             levelController.checkForWinner(1);
-                            this.updateXPosition(nextX.name, [rbOrigin.x(), rbOrigin.y(), rbOrigin.z() + 0.1], AmmoLib);
+                            this.updateXPosition(nextX.name, [rbOrigin.x(), rbOrigin.y(), rbOrigin.z() + 0.1], AmmoLib, true);
 
                             // Postavimo pravilne zastavice na X in na boardKvadratek (used, zasedeno, click se je porabil)
                             click = false;
@@ -883,7 +941,7 @@ export class CollisionDetection {
                             // AI izbere naslednji kvadratek
                             let move = levelController.computerMove();
                             // Nato naslednji prosti O postavimo na board
-                            this.addComputerO(move);
+                            this.addComputerO(move, AmmoLib);
 
                             console.log(levelController.possibilities);
 
@@ -901,7 +959,7 @@ export class CollisionDetection {
         AmmoLib.destroy(to);
     }
 
-    addComputerO(move) {
+    addComputerO(move, AmmoLib) {
         // najdemo naslednji prosti O
         const nextO = this.staticModelsData.find(node => node.name.startsWith("aabb_O") && !node.used);
 
@@ -911,7 +969,7 @@ export class CollisionDetection {
 
         // premaknemo 0 na origin tega kvadrata
         let rbOrigin = boardKvadratek.rigidBody.getWorldTransform().getOrigin();
-        this.updateOPosition(nextO.name, [rbOrigin.x(), rbOrigin.y(), rbOrigin.z() + 0.1]);
+        this.updateOPosition(nextO.name, [rbOrigin.x(), rbOrigin.y(), rbOrigin.z() + 0.1], "O", AmmoLib);
         nextO.used = true; // nastavimo da je O uporabljen
     }
 
@@ -974,6 +1032,12 @@ export class CollisionDetection {
             default:
                 console.log("Board not found.");
         }
+    }
+
+    ammoCleanup() {
+        this.ammoObjectsForCleanup.forEach(obj => {
+            AmmoLibExport.destroy(obj);
+        });
     }
 
     delay(ms) {
