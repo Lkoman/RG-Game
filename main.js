@@ -318,7 +318,7 @@ function onKeydown(event) {
             const x = scene.find(node => node.name === collisionDetection.pickedUpObjectName);
             
             // Now the node's transformation matrix is updated, so reapply it
-            collisionDetection.updateXPosition(x.name, [0,20,0], ammoLib, true);
+            collisionDetection.updateXPosition(x.name, [0,0,0], ammoLib, true);
         } else {
             //console.log("Picked up a cat");
             const cat = scene.find(node => node.name === collisionDetection.pickedUpObjectName);

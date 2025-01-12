@@ -923,8 +923,8 @@ export class CollisionDetection {
                             this.checkBoardKvadratekZaX(rbInfo.name, levelController);
 
                             // Pogledamo če je igralec zmagal (1 je igralec, -1 je AI)
-                            levelController.checkForWinner(1);
                             this.updateXPosition(nextX.name, [rbOrigin.x(), rbOrigin.y(), rbOrigin.z() + 0.1], AmmoLib, true);
+                            levelController.checkForWinner(1);
 
                             // Postavimo pravilne zastavice na X in na boardKvadratek (used, zasedeno, click se je porabil)
                             click = false;
@@ -936,7 +936,7 @@ export class CollisionDetection {
                             }
 
                             // Naredimo delay, da ne AI v sekundi izbere kvadrata
-                            this.delay(50000);
+                            //this.delay(50000);
 
                             // AI izbere naslednji kvadratek
                             let move = levelController.computerMove();

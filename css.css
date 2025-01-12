@@ -15,7 +15,7 @@
     position: absolute;
     height: 100%;
     width: 100%;
-    background-image: url('models/bacground/bacground2.png');
+    background-image: url('models/bacground/background.png');
     background-size: cover;
     background-position: center;
     flex-direction: column;
@@ -27,7 +27,7 @@
 #title-container {
     position: absolute;
     top: 50%;
-    left: 48%;
+    left: 50%;
     transform: translate(-50%, -50%);
     width: 400px;
     height: 100px;
@@ -43,14 +43,13 @@
     font-size: 3rem; /* Size of the title */
     letter-spacing: 4px;
     text-shadow: 4px 4px 10px rgb(255, 254, 254);
-    margin: 0;
-    padding: 20px;
     font-family: 'Press Start 2P', fantasy; /* Retro font */
 }
 #start-button {
     position: absolute;
-    top: 60%;
-    left: 40%;
+    top: 65%;
+    left: 50%;
+    transform: translate(-50%, -50%); /* Centers the button */
     background-color: #2e8b57;
     border: none;
     color: white;
@@ -63,10 +62,17 @@
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
     transition: transform 0.2s ease;
 }
-#how-to-play-button{
+
+/* Optional: Add hover effect for better UX */
+#start-button:hover {
+    transform: translate(-50%, -50%) scale(1.05);
+}
+
+#how-to-play-button {
     position: absolute;
-    top: 70%;
-    left: 42%;
+    top: 75%;
+    left: 50%;
+    transform: translate(-50%, -50%); /* Centers the button */
     background-color: #2e8b57;
     border: none;
     color: white;
@@ -79,6 +85,12 @@
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
     transition: transform 0.2s ease;
 }
+
+/* Optional: Add hover effect for better UX */
+#how-to-play-button:hover {
+    transform: translate(-50%, -50%) scale(1.05);
+}
+
 
 .custom-pointer {
     cursor: none;

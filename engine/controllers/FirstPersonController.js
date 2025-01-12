@@ -3,7 +3,6 @@ import { quat, vec3, vec4, mat4 } from 'glm';
 import { Transform } from '../core/Transform.js';
 
 import { camRigidBody, AmmoLibExport as AmmoLib } from './CollisionDetection.js';
-import { getProjectionMatrix, getGlobalViewMatrix } from '../core/SceneUtils.js';
 
 export let maxSpeed = 5;
 
@@ -20,7 +19,6 @@ export class FirstPersonController {
         pointerSensitivity = 0.001,
         cameraRigidBody = null,
         gameMode = false,
-        switchToGameMode = false,
         cursorX = 0,
         cursorY = 0
     } = {}) {
