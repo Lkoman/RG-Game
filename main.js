@@ -114,7 +114,7 @@ await renderer.initialize();
 // Load the world model
 //
 const worldLoader = new GLTFLoader();
-await worldLoader.load(new URL('./models/world-fun/world-small.gltf', import.meta.url));
+await worldLoader.load(new URL('./models/world-fun/world.gltf', import.meta.url));
 const scene = worldLoader.loadScene(worldLoader.defaultScene); // Add the model to the scene
 
 //
@@ -241,7 +241,7 @@ export function drawText() {
         }
     
         if (collisionDetection.portal2Happy == false) {
-            ctx.fillText('I am an unused portal...I am sad and lonely. I want a cat.', textCanvas.width /2, textCanvas.height - 150);
+            ctx.fillText('I am an unused portal...I am sad and lonely. I want a cat.', textCanvas.width /2, textCanvas.height - 170);
             if (collisionDetection.numPobranihCats > 0) {
                 ctx.fillText('Press E to give portal a cat', textCanvas.width /2, textCanvas.height - 100);
             }
@@ -249,7 +249,7 @@ export function drawText() {
             ctx.fillText('Thank you! You can have this X.', textCanvas.width /2, textCanvas.height - 150);
             if (collisionDetection.portalGiveCat) {
                 const x = scene.find(node => node.name === "dy_X2_trigger");
-                collisionDetection.updateXPosition(x.name, [19.5,11.5,1.5], ammoLib, false);
+                collisionDetection.updateXPosition(x.name, [19.5,12,1.5], ammoLib, false);
                 collisionDetection.portalGiveCat = false;
             }
         }
@@ -279,6 +279,9 @@ export function drawText() {
         if (pointerTexture) {
             ctx.drawImage(pointerTexture, canvas.width / 2, canvas.height / 2);
         }
+    }
+    if (levelController.playerWin) {
+        ctx.fillText('You won! Go to the portal to finish the game.', textCanvas.width /2, textCanvas.height - 170);
     }
 }
 
@@ -330,16 +333,16 @@ function onKeydown(event) {
     else if (collisionDetection.teleport) {
         console.log('Teleport');
     }
-    else if (collisionDetection.playLevel1 && canPlay) {
+    else if (collisionDetection.playLevel1 /*&& canPlay*/) {
         // Če je gameMode true, dodamo cursor na mouse pointer
         firstPerosnController.gameMode = true;
-        collisionDetection.updatePlayerPosition([-39.35, 16, -54], [0, 0, 0], ammoLib);
+        collisionDetection.updatePlayerPosition([-23.8624, 14, -35.993], [0, 0, 0], ammoLib);
     }
     else if (firstPerosnController.gameMode) {
         // Če je gameMode false, odstranimo cursor iz mouse pointerja
         firstPerosnController.gameMode = false;
         // Vn iz gameMode-a
-        collisionDetection.updatePlayerPosition([-40.38089370727539, 14, -55],[0.5126658082008362, -0.4870048761367798, 0.4870048463344574, 0.512665867805481],  ammoLib);
+        collisionDetection.updatePlayerPosition([-23.8624, 14, -35.993],[0.5126658082008362, -0.4870048761367798, 0.4870048463344574, 0.512665867805481],  ammoLib);
     }
 }
 

@@ -395,7 +395,7 @@ export class CollisionDetection {
 
                 // če je ta rigid body a trigger mu dodamo margin
                 if (trigger) {
-                    shape.setMargin(15);
+                    shape.setMargin(20);
                 }
 
                 // Rigid body moramo narediti z transformom, na katerem stoji renderan objekt
@@ -828,9 +828,20 @@ export class CollisionDetection {
         // Če še ni bilo pobranih 5 X-ov, pomeni da še ne igramo igre, in samo pobiramo X-e
         if (this.numPobranihX < 5 && pickedUp) {
             this.numPobranihX++;
-        } 
+        }
+        // if its the X trigger and we didnt collect all the X (which means we are still picking them up), then translate his triggerRigidBody to the new position
+        else if (name == "dy_X2_trigger") {
+            // get the transform of the trigger rigid body
+            model.triggerRigidBody.getMotionState().getWorldTransform(transform);
+
+            // set the new position to the trigger rigid body
+            transform.setOrigin(newPosition);
+
+            model.triggerRigidBody.setWorldTransform(transform);
+            model.triggerRigidBody.getMotionState().setWorldTransform(transform);
+        }
         // To se pa zgodi ko se igra igra - remove triggerRigidBody od X-a in ga postavimo na board (zgoraj)
-        else if (pickedUp) {
+        if (pickedUp) {
             // Remove the trigger rigid body from the map, tako da se ne bo naprej gledal za collision
             let triggerBody = this.modelsData.find(m => m.name === name).triggerRigidBody;
 
@@ -925,7 +936,7 @@ export class CollisionDetection {
                             this.checkBoardKvadratekZaX(rbInfo.name, levelController);
 
                             // Pogledamo če je igralec zmagal (1 je igralec, -1 je AI)
-                            this.updateXPosition(nextX.name, [rbOrigin.x(), rbOrigin.y(), rbOrigin.z() + 0.1], AmmoLib, true);
+                            this.updateXPosition(nextX.name, [rbOrigin.x(), rbOrigin.y(), rbOrigin.z() + 0.1], AmmoLib, false);
                             levelController.checkForWinner(1);
 
                             // Postavimo pravilne zastavice na X in na boardKvadratek (used, zasedeno, click se je porabil)
