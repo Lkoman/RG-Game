@@ -637,6 +637,8 @@ export class CollisionDetection {
     // Podobno kot addAllObjects, samo za playerja/kamero
     // Naredimo box collision shape okoli kamere, dodamo v physics world
     addPlayerCameraRigidBody(physicsWorld, AmmoLib) {
+        this.camera.components[1].far = 50;
+
         // Create a box collision shape
         const halfExtents = new AmmoLib.btVector3(0.3, 1, 0.3); // half dimensions of the box
         const boxShape = new AmmoLib.btBoxShape(halfExtents);
