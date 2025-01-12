@@ -207,10 +207,17 @@ function update(t, dt) {
     }
 
     if(levelController.gameOver){
+        textCanvas.style.display = 'none';	
+        frontPage.style.display = 'none';
+        gameOverCanvas.style.display = 'block';
+    }
+    if(levelController.playerWin && collisionDetection.teleport){
         textCanvas.style.display = 'none';
         frontPage.style.display = 'none';
         gameOverCanvas.style.display = 'block';
-    }    
+    }
+    
+    //resizeCanvas();
 }
 
 function render() {
