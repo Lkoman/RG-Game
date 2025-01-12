@@ -1,7 +1,7 @@
 
 
-export let gameOver = false;
-export let playerWin = false;
+export let gameOver; 
+export let playerWin; 
 
 export class LevelController {
     constructor() {
@@ -11,6 +11,8 @@ export class LevelController {
     }
 
     initHandler() {
+        this.gameOver=false;
+        this.playerWin = false;
         for (let i = 0; i < 9; i++) {
             this.possibilities[i] = 0;
         }
@@ -38,10 +40,11 @@ export class LevelController {
         if (winCombo) {
             if (player == -1) {
                 console.log("Computer wins");
-                gameOver = true;
+                this.gameOver = true;
+                console.log(this.gameOver)
             } else {
                 console.log("Player wins");
-                playerWin = true;
+                this.playerWin = true;
             }
         } 
         // check if every cell in possibilities is not 0
