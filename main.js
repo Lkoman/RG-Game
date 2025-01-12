@@ -195,8 +195,8 @@ function update(t, dt) {
     });
     if(levelController.gameOver){
         textCanvas.style.display = 'none';
-        console.log(levelController.gameOver);
-        console.log(levelController.playerWin);	
+        //console.log(levelController.gameOver);
+        //console.log(levelController.playerWin);	
         frontPage.style.display = 'none';
         gameOverCanvas.style.display = 'block';
     }

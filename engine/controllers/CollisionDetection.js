@@ -297,7 +297,7 @@ export class CollisionDetection {
                 mass = 0.3;
             }
             // Xom dodamo used, da ugotovimo če so bili že used na boardu med igro
-            else if (name.startsWith("dy_X")) {
+            else if (name.startsWith("dy_X") || name.startsWith("aabb_O")) {
                 model.used = false;
             }
             // Ostali modeli, ki nimajo teh posebnosti, bodo imeli mesh collision box, default mass (1 ali 0)
@@ -599,63 +599,6 @@ export class CollisionDetection {
         });
     }
 
-    // Set player position to cameraRigidBody and rotation to the camera node za GAMEMODE
-    updatePlayerPosition(coordinatesT, coordinateR, AmmoLib) {
-        // get the transform of the camera rigid body
-        const transform = new AmmoLib.btTransform();
-        this.cameraRigidBody.getMotionState().getWorldTransform(transform);
-
-        // set the new position to the camera rigid body
-        transform.setOrigin(new AmmoLib.btVector3(coordinatesT[0], coordinatesT[1], coordinatesT[2]));
-        this.cameraRigidBody.setWorldTransform(transform);
-
-        // set the new rotation to the camera node
-        if (coordinateR != null) {
-            this.camera.getComponentOfType(Transform).rotation = quat.fromEuler(quat.create(), coordinateR[0], coordinateR[1], coordinateR[2]);;
-        }
-
-        AmmoLib.destroy(transform);
-    }
-    
-    // Set the position of the object to the coordinatesT
-    updateXPosition(name, coordinatesT, AmmoLib) {
-        // get model from modelsData
-        const model = this.modelsData.find(m => m.name === name);
-
-        if (!model.rigidBody) {
-            console.warn(`Rigid body not found for X: ${model.name}`);
-            return;
-        }
-
-        // get the transform of the rigid body
-        const transform = new AmmoLib.btTransform();
-        model.rigidBody.getMotionState().getWorldTransform(transform);
-
-        // set the new position to the rigid body
-        transform.setOrigin(new AmmoLib.btVector3(coordinatesT[0], coordinatesT[1], coordinatesT[2]));
-
-        // set the rotation to 90, 0, 45
-        transform.setRotation(new AmmoLib.btQuaternion(0, 0, 0.383, 0.924));
-
-        model.rigidBody.setWorldTransform(transform);
-        model.rigidBody.getMotionState().setWorldTransform(transform);
-
-        if (this.numPobranihX <= 5) {
-            this.numPobranihX++;
-        } else {
-            // Remove the trigger rigid body from the map, tako da se ne bo naprej gledal za collision
-            let triggerBody = this.modelsData.find(m => m.name === name).triggerRigidBody;
-
-            if (this.triggerRigidBodyMap.has(triggerBody.kB)) {
-                this.triggerRigidBodyMap.delete(triggerBody.kB);
-            } else {
-                console.warn(`Key ${triggerBody.kB} not found in triggerRigidBodyMap.`);
-            }
-        }
-
-        AmmoLib.destroy(transform);
-    }
-
     ///////////////////////////////////
     // ADD PLAYER/CAMERA RIGID BODY //
     //////////////////////////////////
@@ -795,8 +738,89 @@ export class CollisionDetection {
         }
     }
 
+    // Set player position to cameraRigidBody and rotation to the camera node za GAMEMODE
+    updatePlayerPosition(coordinatesT, coordinateR, AmmoLib) {
+        // get the transform of the camera rigid body
+        const transform = new AmmoLib.btTransform();
+        this.cameraRigidBody.getMotionState().getWorldTransform(transform);
+
+        // set the new position to the camera rigid body
+        transform.setOrigin(new AmmoLib.btVector3(coordinatesT[0], coordinatesT[1], coordinatesT[2]));
+        this.cameraRigidBody.setWorldTransform(transform);
+
+        // set the new rotation to the camera node
+        if (coordinateR != null) {
+            this.camera.getComponentOfType(Transform).rotation = quat.fromEuler(quat.create(), coordinateR[0], coordinateR[1], coordinateR[2]);;
+        }
+
+        AmmoLib.destroy(transform);
+    }
+    
+    //
+    // Tukaj spreminjamo pozicije X-ov in O-jev
+    //
+        // #1 ko pobiramo X-e jih prestavimo na (0, 0, 0)
+        // #2 ko igramo igro, jih postavimo na boad na pravilno mesto
+    updateXPosition(name, coordinatesT, AmmoLib) {
+        // dobimo X iz models data
+        let model = this.modelsData.find(m => m.name === name); 
+
+        // nekaj je šlo narobe
+        if (!model.rigidBody) {
+            console.warn(`Rigid body not found for X: ${model.name}`);
+            return;
+        }
+
+        // get the transform of the rigid body
+        const transform = new AmmoLib.btTransform();
+        model.rigidBody.getMotionState().getWorldTransform(transform);
+
+        // set the new position to the rigid body
+        transform.setOrigin(new AmmoLib.btVector3(coordinatesT[0], coordinatesT[1], coordinatesT[2]));
+
+        // set the rotation to 90, 0, 45
+        transform.setRotation(new AmmoLib.btQuaternion(0, 0, 0.383, 0.924));
+
+        model.rigidBody.setWorldTransform(transform);
+        model.rigidBody.getMotionState().setWorldTransform(transform);
+
+        // Če še ni bilo pobranih 5 X-ov, pomeni da še ne igramo igre, in samo pobiramo X-e
+        if (this.numPobranihX <= 5) {
+            this.numPobranihX++;
+        } 
+        // To se pa zgodi ko se igra igra - remove triggerRigidBody od X-a in ga postavimo na board (zgoraj)
+        else {
+            // Remove the trigger rigid body from the map, tako da se ne bo naprej gledal za collision
+            let triggerBody = this.modelsData.find(m => m.name === name).triggerRigidBody;
+
+            if (this.triggerRigidBodyMap.has(triggerBody.kB)) {
+                this.triggerRigidBodyMap.delete(triggerBody.kB);
+            } else {
+                console.warn(`Key ${triggerBody.kB} not found in triggerRigidBodyMap.`);
+            }
+        }
+
+        AmmoLib.destroy(transform);
+    }
+
+    // Update the position of the actual model, in ne its rigidBody kr je O static, kar pomen da se ne checka njegova spremenjena pozicija - kar pomeni da če spremenim rigidBody bo model ostau na mestu
+    updateOPosition(name, coordinatesT) {
+        // set the translation of the model O to the new position - not in Ammo because O does not have a rigidBody
+        let model = this.scene.find(node => node.name === name);
+        const transformComponent = model.getComponentOfType(Transform);
+        transformComponent.translation = coordinatesT;
+        // rotate it for 90, 0, 0
+        transformComponent.rotation = quat.fromEuler(quat.create(), 90, 0, 0);
+    }
+
     // Check if the cameras ray is intersecting with the playingBoards board00, board01, board22,...
     checkPlayingBoardIntersection(AmmoLib, physicsWorld, click, levelController) {
+
+        // Če je že gameOver ali playerWin, se ne zgodi nič več
+        if (levelController.gameOver == true || levelController.playerWin == true) {
+            return;
+        }
+        
         const cameraTransform = this.camera.getComponentOfType(Transform);
         const origin = cameraTransform.translation;
         const rotationQuat = cameraTransform.rotation;
@@ -838,54 +862,31 @@ export class CollisionDetection {
                         const nextX = this.modelsData.find(node => node.name.startsWith("dy_X") && !node.used);
                         if (nextX) {
                             // Vpišemo v possibilities, da je ta kvadratek zasedel izgralec (1 je igralec, -1 je AI)
-                            switch (rbInfo.name) {
-                                case "aabb_board00":
-                                    levelController.possibilities[0] = 1;
-                                    break;
-                                case "aabb_board01":
-                                    levelController.possibilities[1] = 1;
-                                    break;
-                                case "aabb_board02":
-                                    levelController.possibilities[2] = 1;
-                                    break;
-                                case "aabb_board10":
-                                    levelController.possibilities[3] = 1;
-                                    break;
-                                case "aabb_board11":
-                                    levelController.possibilities[4] = 1;
-                                    break;
-                                case "aabb_board12":
-                                    levelController.possibilities[5] = 1;
-                                    break;
-                                case "aabb_board20":
-                                    levelController.possibilities[6] = 1;
-                                    break;
-                                case "aabb_board21":
-                                    levelController.possibilities[7] = 1;
-                                    break;
-                                case "aabb_board22":
-                                    levelController.possibilities[8] = 1;
-                                    break;
-                                default:
-                                    console.log("Board not found.");
-                            }
-                            console.log("..........");
-                            console.log(levelController.possibilities);
-                            // call AI
-                            levelController.computerMove();
-                            console.log(levelController.possibilities);
-                            console.log("..........");
+                            this.checkBoardKvadratekZaX(rbInfo.name, levelController);
 
+                            // Pogledamo če je igralec zmagal (1 je igralec, -1 je AI)
                             levelController.checkForWinner(1);
+                            this.updateXPosition(nextX.name, [rbOrigin.x(), rbOrigin.y(), rbOrigin.z() + 0.1], AmmoLib);
 
-                            // Dodaj logiko za translating O-je (switch, in updateXPosition)
-                            // dodaj logiko da rata boardXX zaseden ko je gor X ali O
-
-
+                            // Postavimo pravilne zastavice na X in na boardKvadratek (used, zasedeno, click se je porabil)
                             click = false;
                             nextX.used = true;
                             boardKvadratek.zaseden = true;
-                            this.updateXPosition(nextX.name, [rbOrigin.x(), rbOrigin.y(), rbOrigin.z() + 0.1], AmmoLib);
+
+                            if (levelController.gameOver == true || levelController.playerWin == true) {
+                                return;
+                            }
+
+                            // Naredimo delay, da ne AI v sekundi izbere kvadrata
+                            this.delay(50000);
+
+                            // AI izbere naslednji kvadratek
+                            let move = levelController.computerMove();
+                            // Nato naslednji prosti O postavimo na board
+                            this.addComputerO(move);
+
+                            console.log(levelController.possibilities);
+
                             return;
                         } else {
                             console.log("All X's used");
@@ -898,6 +899,81 @@ export class CollisionDetection {
         AmmoLib.destroy(rayCallback);
         AmmoLib.destroy(from);
         AmmoLib.destroy(to);
+    }
+
+    addComputerO(move) {
+        // najdemo naslednji prosti O
+        const nextO = this.staticModelsData.find(node => node.name.startsWith("aabb_O") && !node.used);
+
+        // Pogledamo kateri mode (0-8) je AI izbral in označimo ta kvadrat kot zaseden
+        let boardKvadratek = this.checkBoardKvadratekZaO(move);
+        boardKvadratek.zaseden = true;
+
+        // premaknemo 0 na origin tega kvadrata
+        let rbOrigin = boardKvadratek.rigidBody.getWorldTransform().getOrigin();
+        this.updateOPosition(nextO.name, [rbOrigin.x(), rbOrigin.y(), rbOrigin.z() + 0.1]);
+        nextO.used = true; // nastavimo da je O uporabljen
+    }
+
+    // Pogledamo kateri mode (0-8) je AI izbral in označimo ta kvadrat kot zaseden
+    checkBoardKvadratekZaO(move) {
+        switch (move) {
+            case 0:
+                return this.staticModelsData.find(node => node.name === "aabb_board00");
+            case 1:
+                return this.staticModelsData.find(node => node.name === "aabb_board01");
+            case 2:
+                return this.staticModelsData.find(node => node.name === "aabb_board02");
+            case 3:
+                return this.staticModelsData.find(node => node.name === "aabb_board10");
+            case 4:
+                return this.staticModelsData.find(node => node.name === "aabb_board11");
+            case 5:
+                return this.staticModelsData.find(node => node.name === "aabb_board12");
+            case 6:
+                return this.staticModelsData.find(node => node.name === "aabb_board20");
+            case 7:
+                return this.staticModelsData.find(node => node.name === "aabb_board21");
+            case 8:
+                return this.staticModelsData.find(node => node.name === "aabb_board22");
+            default:
+                console.log("Board not found.");
+        }
+    }
+
+    // Pogledamo na kateri kvadratek je kliknil igralec in ga označimo v possibilities
+    checkBoardKvadratekZaX(name, levelController) {
+        switch (name) {
+            case "aabb_board00":
+                levelController.possibilities[0] = 1;
+                break;
+            case "aabb_board01":
+                levelController.possibilities[1] = 1;
+                break;
+            case "aabb_board02":
+                levelController.possibilities[2] = 1;
+                break;
+            case "aabb_board10":
+                levelController.possibilities[3] = 1;
+                break;
+            case "aabb_board11":
+                levelController.possibilities[4] = 1;
+                break;
+            case "aabb_board12":
+                levelController.possibilities[5] = 1;
+                break;
+            case "aabb_board20":
+                levelController.possibilities[6] = 1;
+                break;
+            case "aabb_board21":
+                levelController.possibilities[7] = 1;
+                break;
+            case "aabb_board22":
+                levelController.possibilities[8] = 1;
+                break;
+            default:
+                console.log("Board not found.");
+        }
     }
 
     delay(ms) {
