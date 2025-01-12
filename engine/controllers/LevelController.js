@@ -1,10 +1,12 @@
+
+
 export let gameOver = false;
 export let playerWin = false;
 
 export class LevelController {
     constructor() {
         this.possibilities = Array(9).fill(0);
-
+        this.minmaxPossibilities= Array(9).fill(0)
         this.initHandler();
     }
 
@@ -20,10 +22,11 @@ export class LevelController {
         if(Math.random() > 0.5){
             move = this.random();
         } else{
-            move = this.minimax();
+            
+            move = this.bestMove();
         }
         console.log(move);
-
+    
         this.possibilities[move] = -1;
 
         this.checkForWinner(-1);
@@ -67,6 +70,7 @@ export class LevelController {
     }
 
     random() {
+        console.log("playing random")
         let move = -1;
         while(move<0){
             let ind = Math.floor(Math.random() * 9);
@@ -77,8 +81,63 @@ export class LevelController {
         return move;
     }
 
-    minimax() {
-        let move = this.random();
+    minimax(depth, isMaximizing) {
+        const scores = {
+            '-1': 10, // Computer wins
+            '1': -10, // Player wins
+            'tie': 0
+        };
+
+        const winner = this.checkWin(-1) ? -1 : this.checkWin(1) ? 1 : null;
+        if (winner !== null) {
+            return scores[winner];
+        }
+        if (this.minmaxPossibilities.every((i) => i != 0)) {
+            return scores['tie'];
+        }
+
+        if (isMaximizing) {
+            let bestScore = -Infinity;
+            for (let i = 0; i < 9; i++) {
+                if (this.possibilities[i] == 0) {
+                    this.minmaxPossibilities[i] = -1;
+                    let score = this.minimax(depth + 1, false);
+                    this.minmaxPossibilities[i] = 0;
+                    bestScore = Math.max(score, bestScore);
+                }
+            }
+            return bestScore;
+        } else {
+            let bestScore = Infinity;
+            for (let i = 0; i < 9; i++) {
+                if (this.possibilities[i] == 0) {
+                    this.minmaxPossibilities[i] = 1;
+                    let score = this.minimax(depth + 1, true);
+                    this.minmaxPossibilities[i] = 0;
+                    bestScore = Math.min(score, bestScore);
+                }
+            }
+            return bestScore;
+        }
+    }
+
+    bestMove() {
+        console.log("playing minmax")
+        let bestScore = -Infinity;
+        this.minmaxPossibilities = this.possibilities;
+        let move;
+        for (let i = 0; i < 9; i++) {
+            if (this.possibilities[i] == 0) {
+                this.minmaxPossibilities[i] = -1;
+                let score = this.minimax(0, false);
+                this.minmaxPossibilities[i] = 0;
+                if (score > bestScore) {
+                    bestScore = score;
+                    move = i;
+                }
+            }
+        }
         return move;
     }
+
 }
