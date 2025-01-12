@@ -939,29 +939,27 @@ export class CollisionDetection {
                             this.updateXPosition(nextX.name, [rbOrigin.x(), rbOrigin.y(), rbOrigin.z() + 0.1], AmmoLib, false);
                             levelController.checkForWinner(1);
 
-                            // Postavimo pravilne zastavice na X in na boardKvadratek (used, zasedeno, click se je porabil)
-                            click = false;
-                            nextX.used = true;
-                            boardKvadratek.zaseden = true;
-
+                            console.log("gameOver: ", levelController.gameOver);
                             if (levelController.gameOver == true || levelController.playerWin == true) {
                                 return;
                             }
 
-                            // Naredimo delay, da ne AI v sekundi izbere kvadrata
-                            //this.delay(50000);
+                            // Postavimo pravilne zastavice na X in na boardKvadratek (used, zasedeno, click se je porabil)
+                            click = false;
+                            nextX.used = true;
+                            boardKvadratek.zaseden = true;
 
                             // AI izbere naslednji kvadratek
                             let move = levelController.computerMove();
                             // Nato naslednji prosti O postavimo na board
                             this.addComputerO(move, AmmoLib);
 
-                            console.log(levelController.possibilities);
-
                             return;
                         } else {
                             console.log("All X's used");
                         }
+                        console.log("-----------------------");
+
                     }
                 }
             }

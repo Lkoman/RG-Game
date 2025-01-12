@@ -1,11 +1,10 @@
-export let gameOver; 
-export let playerWin; 
-
-export class LevelController {
+ export class LevelController {
     constructor() {
         this.possibilities = Array(9).fill(0);
-        this.minmaxPossibilities= Array(9).fill(0)
+        this.minmaxPossibilities= Array(9).fill(0);
         this.initHandler();
+        this.gameOver = false; 
+        this.playerWin = false;
     }
 
     initHandler() {
@@ -19,7 +18,7 @@ export class LevelController {
     computerMove() {
         let move;
 
-        if(Math.random() > 0.5){
+        if(Math.random() > 0.2){
             move = this.random();
         } else{
             
@@ -45,10 +44,10 @@ export class LevelController {
             }
         } 
         // check if every cell in possibilities is not 0
-        else if (this.possibilities.forEach((i) => this.possibilities[i] != 0)) {
+        if (this.possibilities.every((element) => element !== 0)) {
             console.log("It's a tie!");
             console.log(this.possibilities);
-            gameOver = true;
+            this.gameOver = true;
         }
     }
 
