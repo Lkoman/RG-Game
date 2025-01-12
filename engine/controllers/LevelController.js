@@ -40,13 +40,12 @@ export class LevelController {
                 console.log("Player wins");
                 playerWin = true;
             }
-            this.gameOver = true;
         } 
         // check if every cell in possibilities is not 0
         else if (this.possibilities.forEach((i) => this.possibilities[i] != 0)) {
             console.log("It's a tie!");
             console.log(this.possibilities);
-            this.gameOver = true;
+            gameOver = true;
         }
     }
 

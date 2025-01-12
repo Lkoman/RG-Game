@@ -24,14 +24,12 @@ const maxSubSteps = 10; // če zalagga
 let onKeyDownBool = false;
 let saveEvent;
 
-var victory = false;
-var defeat = false;
-
 let onClickSave = false; // to shrani, če je bila miška kliknjena, ko je bil gameMode true, da lahko uporabimo v CollisionDetection.js, da ugotovimo na kateri board je kliknil player
 let canPlay = false; // če je igralec pobral vseh 5 X-ov lahko igra, drugače ne
 
 // Pointer
 let pointerTexture;
+
 
 //////////////
 // POINTER //
@@ -41,14 +39,17 @@ let pointerTexture;
 /////////////////
 // FRONT PAGE ///
 /////////////////
+const startButton = document.getElementById('start-button');
+const frontPage = document.getElementById('front-page');
+const instructions = document.getElementById('how-to-play-button');
+const instructionCanvas = document.getElementById('instructionCanvas');
+const canvas = document.getElementById('webgpuCanvas'); // WebGPU canvas za izris igre
+const textCanvas = document.getElementById('textCanvas'); // Text canvas za izpis texta nad igro
+const youWinCanvas = document.getElementById('you-won-canvas');
+const gameOverCanvas = document.getElementById('game-over-canvas');
+const resetButton = document.getElementById('play-again-button');
 
 document.addEventListener('DOMContentLoaded', () => {
-    const startButton = document.getElementById('start-button');
-    const frontPage = document.getElementById('front-page');
-    const instructions = document.getElementById('how-to-play-button');
-    const instructionCanvas = document.getElementById('instructionCanvas');
-    const youWinCanvas = document.getElementById('you-won-canvas');
-    const gameOverCanvas = document.getElementById('game-over-canvas');
     
     canvas.style.display = 'none';
     textCanvas.style.display = 'none';
@@ -77,6 +78,17 @@ document.addEventListener('DOMContentLoaded', () => {
         instructionCanvas.style.display = 'none';
         frontPage.style.display = 'block';
     });
+
+    resetButton.addEventListener('click', () => {
+        frontPage.style.display = 'block';
+        gameOverCanvas.style.display = 'none';
+        startButton.style.display = 'block';
+        canvas.style.display = 'none';
+        textCanvas.style.display = 'none';
+
+        resetGame();
+    });
+
 });
 
 
@@ -88,8 +100,6 @@ document.addEventListener('DOMContentLoaded', () => {
 // 
 // Set up text canvases
 //
-const canvas = document.getElementById('webgpuCanvas'); // WebGPU canvas za izris igre
-const textCanvas = document.getElementById('textCanvas'); // Text canvas za izpis texta nad igro
 
 // Text canvas settings
 const ctx = textCanvas.getContext('2d');
@@ -183,7 +193,13 @@ function update(t, dt) {
             component.update?.(t, dt);
         }
     });
-
+    if(levelController.gameOver){
+        console.log(levelController.gameOver);
+        console.log(levelController.playerWin);	
+        frontPage.style.display = 'none';
+        gameOverCanvas.style.display = 'block';
+    }
+    
     //resizeCanvas();
 }
 
@@ -297,6 +313,13 @@ function setOnKeyDown(event) {
         saveEvent = event;
     }
 }
+
+function resetGame(){
+    levelController.gameOver = false;
+    levelController.playerWin = false;
+    collisionDetection.numPobranihX = 0;
+}
+    
 
 document.addEventListener('keydown', setOnKeyDown);
 
