@@ -20,7 +20,7 @@ import { AmmoLibExport as ammoLib } from './engine/controllers/CollisionDetectio
 ///////////////
 
 const timeStep = 1 / 60; // 60 FPS
-const maxSubSteps = 10; // če FPS droppa, bo Ammo probu 2 koraka na frame, da ne zgleda preveč laggy
+const maxSubSteps = 2; // če FPS droppa, bo Ammo probu 2 koraka na frame, da ne zgleda preveč laggy
 let onKeyDownBool = false;
 let saveEvent;
 
@@ -249,7 +249,7 @@ export function drawText() {
             ctx.fillText('Thank you! You can have this X.', textCanvas.width /2, textCanvas.height - 150);
             if (collisionDetection.portalGiveCat) {
                 const x = scene.find(node => node.name === "dy_X2_trigger");
-                collisionDetection.updateXPosition(x.name, [19.5,12.5,1.5], ammoLib, false);
+                collisionDetection.updateXPosition(x.name, [19.5,11.5,1.5], ammoLib, false);
                 collisionDetection.portalGiveCat = false;
             }
         }
