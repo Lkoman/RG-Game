@@ -354,7 +354,7 @@ function onKeydown(event) {
             clickTeleportWin = true;
         }
     }
-    else if (collisionDetection.playLevel1 /*&& canPlay*/) {
+    else if (collisionDetection.playLevel1 && canPlay) {
         // Če je gameMode true, dodamo cursor na mouse pointer
         firstPerosnController.gameMode = true;
         collisionDetection.updatePlayerPosition([-23.8624, 14, -35.993], [0, 0, 0], ammoLib);
