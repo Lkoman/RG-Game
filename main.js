@@ -26,6 +26,7 @@ let saveEvent;
 
 let onClickSave = false; // to shrani, če je bila miška kliknjena, ko je bil gameMode true, da lahko uporabimo v CollisionDetection.js, da ugotovimo na kateri board je kliknil player
 let canPlay = false; // če je igralec pobral vseh 5 X-ov lahko igra, drugače ne
+let clickTeleportWin = false;
 
 // Pointer
 let pointerTexture;
@@ -51,7 +52,8 @@ const canvas = document.getElementById('webgpuCanvas'); // WebGPU canvas za izri
 const textCanvas = document.getElementById('textCanvas'); // Text canvas za izpis texta nad igro
 const youWinCanvas = document.getElementById('you-won-canvas');
 const gameOverCanvas = document.getElementById('game-over-canvas');
-const resetButton = document.getElementById('play-again-button');
+const resetButton = document.getElementById('main-menu-button');
+const winResetButton = document.getElementById('win-main-menu-button');
 
 document.addEventListener('DOMContentLoaded', () => {
     
@@ -87,14 +89,16 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     resetButton.addEventListener('click', () => {
-        frontPage.style.display = 'block';
-        gameOverCanvas.style.display = 'none';
-        startButton.style.display = 'block';
-        canvas.style.display = 'none';
-        textCanvas.style.display = 'none';
-
-        resetGame();
+        setTimeout(function(){
+            window.location.reload();
+          });
     });
+    winResetButton.addEventListener('click', () => {
+        setTimeout(function(){
+            window.location.reload();
+          });
+    });
+
 
 });
 
@@ -183,7 +187,6 @@ await loadPointerTexture();
 ///////////////////////
 
 function update(t, dt) {
-    console.log(levelController.gameOver);
     // Update physics
     if (collisionDetection.updatePhysics) {
         collisionDetection.updatePhysics(timeStep, maxSubSteps);
@@ -214,15 +217,16 @@ function update(t, dt) {
         });
     }
 
-    if(levelController.gameOver){
-        textCanvas.style.display = 'none';	
-        frontPage.style.display = 'none';
-        gameOverCanvas.style.display = 'block';
-    }
-    if(levelController.playerWin && collisionDetection.teleport){
+    if (levelController.gameOver){
         textCanvas.style.display = 'none';
         frontPage.style.display = 'none';
         gameOverCanvas.style.display = 'block';
+    }
+    if (levelController.playerWin && collisionDetection.teleport && clickTeleportWin){
+        console.log ("player wins");
+        textCanvas.style.display = 'none';
+        frontPage.style.display = 'none';
+        youWinCanvas.style.display = 'block';
     }
     
     //resizeCanvas();
@@ -346,7 +350,9 @@ function onKeydown(event) {
 
     }
     else if (collisionDetection.teleport) {
-        console.log('Teleport');
+        if (levelController.playerWin) {
+            clickTeleportWin = true;
+        }
     }
     else if (collisionDetection.playLevel1 /*&& canPlay*/) {
         // Če je gameMode true, dodamo cursor na mouse pointer
@@ -374,14 +380,7 @@ function setOnKeyDown(event) {
         onKeyDownBool = true;
         saveEvent = event;
     }
-}
-
-function resetGame(){
-    levelController.gameOver = false;
-    levelController.playerWin = false;
-    collisionDetection.numPobranihX = 0;
-}
-    
+}   
 
 document.addEventListener('keydown', setOnKeyDown);
 

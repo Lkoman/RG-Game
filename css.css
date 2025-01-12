@@ -124,15 +124,25 @@
     color:#19492e;
     font-family: 'Press Start 2P', fantasy; /* Retro font */
 }
-#play-again-button {
+#main-menu-button, #win-main-menu-button {
     position: absolute;
-    top: 50%;
-    left: 39%;
-    width: 400px;
-    height: 100px;
-    background-color: #19492e; 
-    color:white;
+    top: 55%;
+    left: 50%;
+    transform: translate(-50%, -50%); /* Centers the button */
+    background-color: #19492e;
+    border: none;
+    color: white;
     font-size: 2rem;
+    padding: 20px 40px;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s ease;
+}
+#main-menu-button:hover, #win-main-menu-button:hover {
+    transform: translate(-50%, -50%) scale(1.05);
 }
 #game-over-canvas {
     position: absolute;
@@ -141,7 +151,6 @@
     width: 100%;
     background-position: center;
     background-size: cover;
-    background-color: #2e8b57;
     text-align: center;
 }
 .game-over-text {
