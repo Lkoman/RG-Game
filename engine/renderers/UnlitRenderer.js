@@ -198,7 +198,7 @@ export class UnlitRenderer extends BaseRenderer {
         // FOG PARAMETERS
         const fogColor = new Float32Array([0.5, 0.5, 0.5, 1.0]); // gray
         const fogNear = 25.0; // Start of fog
-        const fogFar = 100.0;  // End of fog
+        const fogFar = 50.0;  // End of fog
 
         const encoder = this.device.createCommandEncoder();
         this.renderPass = encoder.beginRenderPass({
