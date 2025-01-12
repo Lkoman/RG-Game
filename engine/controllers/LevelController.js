@@ -44,7 +44,7 @@
             }
         } 
         // check if every cell in possibilities is not 0
-        if (this.possibilities.every((element) => element !== 0)) {
+        else if (this.possibilities.every((element) => element !== 0)) {
             console.log("It's a tie!");
             console.log(this.possibilities);
             this.gameOver = true;
