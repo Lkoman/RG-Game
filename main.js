@@ -31,10 +31,14 @@ let canPlay = false; // če je igralec pobral vseh 5 X-ov lahko igra, drugače n
 let pointerTexture;
 
 
-//////////////
-// POINTER //
 /////////////
+// SOUNDS //
+////////////
 
+const ambient = document.getElementById('ambient');
+ambient.volume = 0.7;
+const buttonClick = document.getElementById('button-click');
+buttonClick.volume = 0.8;
 
 /////////////////
 // FRONT PAGE ///
@@ -55,20 +59,23 @@ document.addEventListener('DOMContentLoaded', () => {
     textCanvas.style.display = 'none';
     instructionCanvas.style.display = 'none';
     youWinCanvas.style.display = 'none';
-    gameOverCanvas.style.display = 'none';    
+    gameOverCanvas.style.display = 'none';
     
 
     startButton.addEventListener('click', () => {
+        buttonClick.play();
         // Hide the front page and show the game canvas
         frontPage.style.display = 'none';
         webgpuCanvas.style.display = 'block';
         textCanvas.style.display = 'block';
-        
+
         // Initialize and start the game
         render();
+        ambient.play();
         
     });
     instructions.addEventListener('click', () => {
+        buttonClick.play();
         frontPage.style.display = 'none';
         instructionCanvas.style.display = 'block';
     });
@@ -176,6 +183,7 @@ await loadPointerTexture();
 ///////////////////////
 
 function update(t, dt) {
+    console.log(levelController.gameOver);
     // Update physics
     if (collisionDetection.updatePhysics) {
         collisionDetection.updatePhysics(timeStep, maxSubSteps);
@@ -183,7 +191,7 @@ function update(t, dt) {
             onKeydown(saveEvent);
             onKeyDownBool = false;
         }
-        collisionDetection.setPositions(dt);
+        collisionDetection.setPositions(dt, levelController);
         if (firstPerosnController.gameMode) {
             collisionDetection.checkBoardCollisionsLevel1(onClickSave, levelController);
             onClickSave = false;

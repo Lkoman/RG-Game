@@ -4,8 +4,6 @@ import { Transform } from '../core/Transform.js';
 
 import { camRigidBody, AmmoLibExport as AmmoLib } from './CollisionDetection.js';
 
-export let maxSpeed = 5;
-
 export class FirstPersonController {
 
     constructor(node, domElement, {
@@ -14,7 +12,7 @@ export class FirstPersonController {
         yaw = 0,
         velocity = [0, 0, 0],
         acceleration = 5,
-        maxSpeed = 4,
+        maxSpeed = 3,
         decay = 0.99999,
         pointerSensitivity = 0.001,
         cameraRigidBody = null,
@@ -80,10 +78,8 @@ export class FirstPersonController {
         // If shift is pressed, max speed is doubled.
         if (this.keys['ShiftLeft']) {
             this.maxSpeed = 5;
-            maxSpeed = 3;
         } else {
             this.maxSpeed = 3;
-            maxSpeed = 3;
         }
         // Map user input to the acceleration vector.
         const acc = vec3.create();
@@ -117,32 +113,31 @@ export class FirstPersonController {
 
         // Set the velocity on the cameraRigidBody
         if (camRigidBody) {
-            // read curren velocity of the camera rigid body
+            // Read current velocity of the camera rigid body
             const currentVel = camRigidBody.getLinearVelocity();
-
-            const currentVec = [currentVel.x(), currentVel.y(), currentVel.z()]; // convert to vec3
+        
+            const currentVec = [currentVel.x(), currentVel.y(), currentVel.z()]; // Convert to vec3
             AmmoLib.destroy(currentVel);
-
+        
             if (acc[1] === 0) {
                 acc[1] = currentVec[1];
             }
-            const desiredVec = [acc[0], acc[1], acc[2]]; // only move in x and z, keep y/height
-
-            // Now compute how different it is from the current velocity
+            const desiredVec = [acc[0], acc[1], acc[2]]; // Only move in x and z, keep y/height
+        
+            // Compute the difference from the current velocity
             const diffX = desiredVec[0] - currentVec[0];
             const diffY = desiredVec[1] - currentVec[1];
             const diffZ = desiredVec[2] - currentVec[2];
-
+        
             const impulse = new AmmoLib.btVector3(diffX * this.mass, diffY * this.mass, diffZ * this.mass);
             
-            // Apply that impulse so Bullet adjusts the velocity
+            // Apply the impulse to adjust velocity
             camRigidBody.applyCentralImpulse(impulse);
             AmmoLib.destroy(impulse);
-
         } else {
             console.log("No camRigidBody found");
         }
-
+        
         // handle camera orientation by directly setting node’s rotation
         const transform = this.node.getComponentOfType(Transform);
         if (transform) {

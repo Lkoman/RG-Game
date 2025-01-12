@@ -2,12 +2,6 @@ import { quat, vec3, mat4 } from 'glm';
 
 import { Camera, Transform } from '../core.js';
 
-import { maxSpeed } from './FirstPersonController.js';
-
-import { getGlobalModelMatrix } from '../core/SceneUtils.js';
-
-import { drawText } from '../../main.js';
-
 // export this.cameraRigidBody in AmmoLib instance za uporabo v FirstPersonController
 export let camRigidBody;
 export let AmmoLibExport;
@@ -269,9 +263,9 @@ export class CollisionDetection {
             // Advances the physics world
             physicsWorld.stepSimulation(timeStep, maxSubSteps);
         };
-        this.setPositions = (dt) => {
+        this.setPositions = (dt, levelController) => {
             // Translation, rotation kamere = cameraRigidBody position, rotation
-            this.syncPlayerCameraTR(this.cameraRigidBody, this.camera, AmmoLib, dt);
+            this.syncPlayerCameraTR(this.cameraRigidBody, this.camera, AmmoLib, dt, levelController);
 
             // Synchronize vse actual modele z positions, rotations of their respective rigid bodies
             this.syncObjects(AmmoLib);
@@ -607,15 +601,18 @@ export class CollisionDetection {
         
                 const node = this.scene.find(node => node.name === model.name);
                 const transformComponent = node.getComponentOfType(Transform);
-        
-                if (transformComponent) { // naj bodo vsi dynamic objects na tleh ali da padajo
-                    transformComponent.translation = [origin.x(), origin.y(), origin.z()];
-                    transformComponent.rotation = quat.fromValues(
-                        rotation.x(),
-                        rotation.y(),
-                        rotation.z(),
-                        rotation.w()
-                    );
+
+                // if the objects y is less than -30, stop them
+                if (origin.y() > -30) {
+                    if (transformComponent) { // naj bodo vsi dynamic objects na tleh ali da padajo
+                        transformComponent.translation = [origin.x(), origin.y(), origin.z()];
+                        transformComponent.rotation = quat.fromValues(
+                            rotation.x(),
+                            rotation.y(),
+                            rotation.z(),
+                            rotation.w()
+                        );
+                    }
                 }
 
                 // Če ima model tudi trigger body, mu nastavimo triggerBody = rigidBody position
@@ -688,33 +685,25 @@ export class CollisionDetection {
     // Camera transforms = origin, rotation od njegovega rigid Bodyja
         // To omogoča, da Ammo kalkulira končno fiziko in da se pozna collision/gravity itd.
     // Keyboard controls so v FirstPersonController.js, ki se zgodijo najprej, nato pa ta funkcija
-    syncPlayerCameraTR(rigidBody, camera, AmmoLib, dt) {
+    syncPlayerCameraTR(rigidBody, camera, AmmoLib, dt, levelController) {
         // preberemo from ammo/bullet kje je rigid body od kamere
         const transform = this.sharedTransform;
         rigidBody.getMotionState().getWorldTransform(transform);
     
         // preberemo koordinate rigid body od kamere
         const origin = transform.getOrigin();
-        const rotation = transform.getRotation();
 
-        // find the nodes transform component
-        const cameraTransform  = camera.getComponentOfType(Transform);
-        if (cameraTransform) {
-            // nastavimo translation kamere na njen rigid body position
-            cameraTransform.translation = [origin.x(), origin.y() + 0.8, origin.z()];
-            /*cameraTransform.rotation = quat.fromValues(
-                rotation.x(),
-                rotation.y(),
-                rotation.z(),
-                rotation.w()
-            );*/
-        }
-
-        // IZPIS CAMERA POSITION
-        //console.log("Camera trans:", cameraTransform.translation[0], cameraTransform.translation[1], cameraTransform.translation[2]);
-
-        // IZPIS CAMERA RIGID BODY POSITION
-        //console.log("Camera rigid:", origin.x(), origin.y(), origin.z());            
+        // if the players y is less than -30, then set gameMode = false
+        if (origin.y() < -30) {
+            levelController.gameOver = true;
+        } else {
+            // find the nodes transform component
+            const cameraTransform  = camera.getComponentOfType(Transform);
+            if (cameraTransform) {
+                // nastavimo translation kamere na njen rigid body position
+                cameraTransform.translation = [origin.x(), origin.y() + 0.8, origin.z()];
+            } 
+        }         
     }
 
     //////////////////////////////////
