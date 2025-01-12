@@ -260,8 +260,8 @@ export class CollisionDetection {
             // Check for trigger collisions (collision detection and response naredi Ammo sam)
             this.checkCollisions(physicsWorld, AmmoLib);
         };
-        this.checkBoardCollisionsLevel1 = (click) => {
-            this.checkPlayingBoardIntersection(AmmoLib, physicsWorld, click);
+        this.checkBoardCollisionsLevel1 = (click, levelController) => {
+            this.checkPlayingBoardIntersection(AmmoLib, physicsWorld, click, levelController);
         }
     }
 
@@ -653,7 +653,6 @@ export class CollisionDetection {
             }
         }
 
-
         AmmoLib.destroy(transform);
     }
 
@@ -797,7 +796,7 @@ export class CollisionDetection {
     }
 
     // Check if the cameras ray is intersecting with the playingBoards board00, board01, board22,...
-    checkPlayingBoardIntersection(AmmoLib, physicsWorld, click) {
+    checkPlayingBoardIntersection(AmmoLib, physicsWorld, click, levelController) {
         const cameraTransform = this.camera.getComponentOfType(Transform);
         const origin = cameraTransform.translation;
         const rotationQuat = cameraTransform.rotation;
@@ -835,15 +834,58 @@ export class CollisionDetection {
                     let rbOrigin = body.getWorldTransform().getOrigin();
                     let boardKvadratek = this.staticModelsData.find(node => node.name === rbInfo.name);
 
-                    //console.log(boardKvadratek);
                     if(boardKvadratek.zaseden == false && click) {
                         const nextX = this.modelsData.find(node => node.name.startsWith("dy_X") && !node.used);
                         if (nextX) {
-                            //console.log(nextX);
+                            // Vpišemo v possibilities, da je ta kvadratek zasedel izgralec (1 je igralec, -1 je AI)
+                            switch (rbInfo.name) {
+                                case "aabb_board00":
+                                    levelController.possibilities[0] = 1;
+                                    break;
+                                case "aabb_board01":
+                                    levelController.possibilities[1] = 1;
+                                    break;
+                                case "aabb_board02":
+                                    levelController.possibilities[2] = 1;
+                                    break;
+                                case "aabb_board10":
+                                    levelController.possibilities[3] = 1;
+                                    break;
+                                case "aabb_board11":
+                                    levelController.possibilities[4] = 1;
+                                    break;
+                                case "aabb_board12":
+                                    levelController.possibilities[5] = 1;
+                                    break;
+                                case "aabb_board20":
+                                    levelController.possibilities[6] = 1;
+                                    break;
+                                case "aabb_board21":
+                                    levelController.possibilities[7] = 1;
+                                    break;
+                                case "aabb_board22":
+                                    levelController.possibilities[8] = 1;
+                                    break;
+                                default:
+                                    console.log("Board not found.");
+                            }
+                            console.log("..........");
+                            console.log(levelController.possibilities);
+                            // call AI
+                            levelController.computerMove();
+                            console.log(levelController.possibilities);
+                            console.log("..........");
+
+                            levelController.checkForWinner(1);
+
+                            // Dodaj logiko za translating O-je (switch, in updateXPosition)
+                            // dodaj logiko da rata boardXX zaseden ko je gor X ali O
+
+
                             click = false;
                             nextX.used = true;
-                            this.updateXPosition(nextX.name, [rbOrigin.x(), rbOrigin.y(), rbOrigin.z() + 0.1], AmmoLib);
                             boardKvadratek.zaseden = true;
+                            this.updateXPosition(nextX.name, [rbOrigin.x(), rbOrigin.y(), rbOrigin.z() + 0.1], AmmoLib);
                             return;
                         } else {
                             console.log("All X's used");

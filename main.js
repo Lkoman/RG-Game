@@ -114,6 +114,11 @@ const collisionDetection = new CollisionDetection(scene);
 scene.addComponent(collisionDetection);
 
 //
+// Set up level controller
+//
+const levelController = new LevelController();
+
+//
 // Set up the camera
 //
 const camera = scene.find(node => node.getComponentOfType(Camera));
@@ -167,7 +172,7 @@ function update(t, dt) {
         }
         collisionDetection.setPositions(dt);
         if (firstPerosnController.gameMode) {
-            collisionDetection.checkBoardCollisionsLevel1(onClickSave);
+            collisionDetection.checkBoardCollisionsLevel1(onClickSave, levelController);
             onClickSave = false;
         }
     }
