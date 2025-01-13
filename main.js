@@ -36,10 +36,10 @@ let pointerTexture;
 // SOUNDS //
 ////////////
 
-/*const ambient = document.getElementById('ambient');
+const ambient = document.getElementById('ambient');
 ambient.volume = 0.7;
 const buttonClick = document.getElementById('button-click');
-buttonClick.volume = 0.8;*/
+buttonClick.volume = 0.8;
 
 /////////////////
 // FRONT PAGE ///
@@ -65,7 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
 
     startButton.addEventListener('click', () => {
-        //buttonClick.play();
+        buttonClick.play();
         // Hide the front page and show the game canvas
         frontPage.style.display = 'none';
         webgpuCanvas.style.display = 'block';
@@ -73,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Initialize and start the game
         render();
-        //ambient.play();
+        ambient.play();
         
     });
     instructions.addEventListener('click', () => {
@@ -354,7 +354,7 @@ function onKeydown(event) {
             clickTeleportWin = true;
         }
     }
-    else if (collisionDetection.playLevel1 /*&& canPlay*/) {
+    else if (collisionDetection.playLevel1 && canPlay) {
         // Če je gameMode true, dodamo cursor na mouse pointer
         firstPerosnController.gameMode = true;
         collisionDetection.updatePlayerPosition([-23.8624, 14, -35.993], [0, 0, 0], ammoLib);
