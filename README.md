@@ -1,4 +1,4 @@
-# WEBGL game TIC TAC TOE
+# WEBGPU game TIC TAC TOE
 Končni seminar za predmet RG na FRI.
 
 ## Physics
